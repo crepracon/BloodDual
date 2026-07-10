@@ -1,5 +1,5 @@
-// The List — offline support
-const CACHE = "the-list-v2";
+// Blood Dual — offline support
+const CACHE = "blooddual-v4";
 const ASSETS = [
   "./",
   "./index.html",
