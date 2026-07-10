@@ -1,0 +1,843 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#14161a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="The List">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>The List — Duel Scorekeeper</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Barlow+Condensed:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --steel: #14161a;
+    --steel-panel: #1c1f25;
+    --parchment: #f7f3ea;
+    --parchment-dim: #c6beac;
+    --brass: #c9a648;
+    --blood: #c0392b;
+    --hairline: rgba(237, 230, 214, 0.14);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { height: 100%; }
+
+  body {
+    background: var(--steel);
+    color: var(--parchment);
+    font-family: 'Barlow Condensed', 'Arial Narrow', sans-serif;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    min-height: 100dvh;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+  }
+
+  /* ---------- Header ---------- */
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 8px 14px;
+    border-bottom: 1px solid var(--hairline);
+  }
+  .app-title {
+    font-family: 'Cinzel', serif;
+    font-weight: 700;
+    font-size: 15px;
+    letter-spacing: 0.22em;
+    color: var(--brass);
+    text-transform: uppercase;
+  }
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--parchment-dim);
+  }
+  .hp-setting { display: flex; align-items: center; gap: 6px; }
+  .hp-setting input {
+    width: 52px;
+    background: rgba(0,0,0,0.3);
+    border: 1px solid var(--hairline);
+    border-radius: 5px;
+    color: var(--parchment);
+    font-family: inherit;
+    font-size: 16px;
+    font-weight: 600;
+    text-align: center;
+    padding: 3px 2px;
+  }
+  .hp-setting input:focus-visible { outline: 2px solid var(--brass); outline-offset: 1px; }
+
+  /* ---------- Round tracker ---------- */
+  .rounds {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border-bottom: 1px solid var(--hairline);
+    background: var(--steel-panel);
+    padding: 8px 12px;
+  }
+  .round {
+    font-family: 'Cinzel', serif;
+    font-size: clamp(22px, 6vw, 32px);
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--brass);
+    text-align: center;
+  }
+
+  /* ---------- Fighter panels ---------- */
+  main {
+    flex: 1;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .fighter {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 10px;
+    padding: 18px 10px 20px;
+    position: relative;
+    overflow: hidden;
+    transition: filter 200ms ease;
+    background: linear-gradient(180deg, var(--deep), color-mix(in srgb, var(--deep) 50%, black));
+  }
+  .fighter.down { filter: grayscale(0.7) brightness(0.7); }
+
+  .fighter::after {   /* hit flash */
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: var(--parchment);
+    opacity: 0;
+    pointer-events: none;
+  }
+  .fighter.flash::after { animation: flash 260ms ease-out; }
+  @keyframes flash { from { opacity: 0.4; } to { opacity: 0; } }
+  @media (prefers-reduced-motion: reduce) {
+    .fighter.flash::after { animation: none; }
+  }
+
+  .fighter input.name {
+    background: transparent;
+    border: none;
+    border-bottom: 1px dashed rgba(247, 243, 234, 0.35);
+    color: var(--parchment);
+    font-family: inherit;
+    font-size: clamp(19px, 5.5vw, 28px);
+    font-weight: 600;
+    text-align: center;
+    width: 92%;
+    max-width: 260px;
+    padding: 2px 4px;
+    letter-spacing: 0.04em;
+  }
+  .fighter input.name:focus {
+    outline: 2px solid var(--brass);
+    outline-offset: 2px;
+    border-bottom-color: transparent;
+  }
+  .fighter input.name::placeholder { color: var(--parchment-dim); opacity: 0.7; }
+
+  .hp {
+    font-size: clamp(56px, 17vw, 120px);
+    font-weight: 700;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+  }
+  .hp-label {
+    font-size: 12px;
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+    color: var(--parchment-dim);
+    margin-top: -4px;
+  }
+
+  .hp-bar {
+    width: 90%;
+    max-width: 260px;
+    height: 12px;
+    border-radius: 6px;
+    background: rgba(0,0,0,0.45);
+    overflow: hidden;
+    margin: 4px 0 2px;
+  }
+  .hp-bar .fill {
+    height: 100%;
+    border-radius: 6px;
+    transition: width 200ms ease, background-color 200ms ease;
+  }
+
+  .wounds {
+    font-size: 13.5px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--parchment-dim);
+    min-height: 18px;
+    margin-bottom: 4px;
+    white-space: nowrap;
+    max-width: 96%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .wounds .bleeding { color: #f08a7e; font-weight: 700; }
+
+  /* Hit buttons */
+  .hits { display: flex; flex-direction: column; gap: 10px; width: 94%; max-width: 260px; margin-top: 2px; }
+  .hit {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-family: inherit;
+    font-size: 19px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--parchment);
+    background: rgba(0,0,0,0.35);
+    border: 1px solid rgba(247, 243, 234, 0.22);
+    border-radius: 8px;
+    padding: 14px 15px;
+    cursor: pointer;
+  }
+  .hit:active { background: rgba(0,0,0,0.55); }
+  .hit:focus-visible { outline: 2px solid var(--brass); outline-offset: 2px; }
+  .hit .dmg { color: var(--bright); font-weight: 700; font-size: 21px; }
+  .hit .bleed-tag {
+    display: block;
+    font-size: 11.5px;
+    letter-spacing: 0.1em;
+    color: var(--parchment-dim);
+    font-weight: 500;
+    margin-top: 2px;
+  }
+  .fighter.down .hit { pointer-events: none; opacity: 0.5; }
+
+  /* ---------- Verdict banner ---------- */
+  .verdict {
+    display: none;
+    text-align: center;
+    padding: 10px 14px;
+    font-family: 'Cinzel', serif;
+    font-size: clamp(16px, 4.5vw, 22px);
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    color: var(--brass);
+    background: rgba(201, 166, 72, 0.08);
+    border-top: 1px solid rgba(201, 166, 72, 0.35);
+  }
+  .verdict.show { display: block; }
+
+  /* ---------- Swatch strip ---------- */
+  .swatch-strip {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+    background: var(--steel-panel);
+    border-top: 1px solid var(--hairline);
+    padding: 10px 12px;
+  }
+  .swatches { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; align-content: center; }
+  .swatch {
+    width: 24px; height: 24px;
+    border-radius: 50%;
+    border: 2px solid rgba(0,0,0,0.35);
+    cursor: pointer;
+    padding: 0;
+  }
+  .swatch.active { border-color: var(--parchment); box-shadow: 0 0 0 2px rgba(0,0,0,0.4); }
+  .swatch:focus-visible { outline: 2px solid var(--brass); outline-offset: 2px; }
+
+  /* ---------- Controls ---------- */
+  .controls {
+    display: grid;
+    grid-template-columns: 0.8fr 1.2fr 1fr;
+    gap: 10px;
+    padding: 12px 14px;
+    border-top: 1px solid var(--hairline);
+    background: var(--steel-panel);
+  }
+  button.ctl {
+    font-family: inherit;
+    font-size: 15.5px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding: 13px 6px;
+    border-radius: 6px;
+    border: 1px solid rgba(247, 243, 234, 0.22);
+    background: transparent;
+    color: var(--parchment);
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  button.ctl:active { background: rgba(237,230,214,0.08); }
+  button.ctl:focus-visible { outline: 2px solid var(--brass); outline-offset: 2px; }
+  button.ctl:disabled { opacity: 0.4; pointer-events: none; }
+
+  .next-btn {
+    background: var(--brass);
+    border-color: var(--brass);
+    color: #1a1508;
+  }
+  .next-btn:active { filter: brightness(0.9); }
+
+  /* ---------- Record ---------- */
+  .log {
+    background: var(--steel-panel);
+    border-top: 1px solid var(--hairline);
+    max-height: 24vh;
+    overflow-y: auto;
+  }
+  .log-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 16px 4px;
+    position: sticky;
+    top: 0;
+    background: var(--steel-panel);
+  }
+  .log-head h2 {
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+    color: var(--parchment-dim);
+  }
+  .log-head button {
+    background: none;
+    border: none;
+    color: var(--parchment-dim);
+    font-family: inherit;
+    font-size: 13px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    cursor: pointer;
+    padding: 4px 6px;
+  }
+  .log-head button:hover, .log-head button:focus-visible { color: var(--brass); outline: none; }
+
+  .log ol { list-style: none; padding: 2px 16px 12px; }
+  .log li {
+    padding: 5px 0;
+    border-bottom: 1px dotted rgba(237,230,214,0.08);
+    font-size: 16.5px;
+    line-height: 1.35;
+  }
+  .log .who { font-weight: 700; }
+  .log .dim { color: var(--parchment-dim); }
+  .log .bleed-txt { color: #e2766a; }
+  .log li.milestone {
+    font-family: 'Cinzel', serif;
+    font-size: 14.5px;
+    letter-spacing: 0.08em;
+    color: var(--brass);
+  }
+  .log li.roundmark {
+    font-size: 13px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--parchment-dim);
+    text-align: center;
+  }
+  .log-empty {
+    padding: 4px 16px 14px;
+    color: var(--parchment-dim);
+    font-size: 15px;
+    letter-spacing: 0.04em;
+  }
+
+  @media (min-width: 700px) {
+    .hits { flex-direction: row; }
+    .hit { flex: 1; flex-direction: column; gap: 2px; text-align: center; }
+    .log { max-height: 20vh; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="app-title">The List</div>
+  <div class="header-right">
+    <label class="hp-setting" for="hpStart">Start HP
+      <input type="number" id="hpStart" value="20" min="1" max="99" inputmode="numeric">
+    </label>
+    <div>Fight <span id="fightNum">1</span></div>
+  </div>
+</header>
+
+<nav class="rounds" id="roundBar" aria-label="Round tracker"></nav>
+
+<main>
+  <section class="fighter" id="panelA" aria-label="Fighter one">
+    <input class="name" id="nameA" type="text" placeholder="Fighter name" autocomplete="off">
+    <div class="hp" id="hpA">20</div>
+    <div class="hp-label">Health</div>
+    <div class="hp-bar"><div class="fill" id="barA"></div></div>
+    <div class="wounds" id="woundsA">Unwounded</div>
+    <div class="hits">
+      <button class="hit" data-side="a" data-loc="head">
+        <span>Head<span class="bleed-tag">bleeds −2/round</span></span>
+        <span class="dmg">−3</span>
+      </button>
+      <button class="hit" data-side="a" data-loc="chest">
+        <span>Chest<span class="bleed-tag">bleeds −1/round</span></span>
+        <span class="dmg">−2</span>
+      </button>
+      <button class="hit" data-side="a" data-loc="limb">
+        <span>Limb<span class="bleed-tag">no bleed</span></span>
+        <span class="dmg">−1</span>
+      </button>
+    </div>
+  </section>
+
+  <section class="fighter" id="panelB" aria-label="Fighter two">
+    <input class="name" id="nameB" type="text" placeholder="Fighter name" autocomplete="off">
+    <div class="hp" id="hpB">20</div>
+    <div class="hp-label">Health</div>
+    <div class="hp-bar"><div class="fill" id="barB"></div></div>
+    <div class="wounds" id="woundsB">Unwounded</div>
+    <div class="hits">
+      <button class="hit" data-side="b" data-loc="head">
+        <span>Head<span class="bleed-tag">bleeds −2/round</span></span>
+        <span class="dmg">−3</span>
+      </button>
+      <button class="hit" data-side="b" data-loc="chest">
+        <span>Chest<span class="bleed-tag">bleeds −1/round</span></span>
+        <span class="dmg">−2</span>
+      </button>
+      <button class="hit" data-side="b" data-loc="limb">
+        <span>Limb<span class="bleed-tag">no bleed</span></span>
+        <span class="dmg">−1</span>
+      </button>
+    </div>
+  </section>
+</main>
+
+<div class="verdict" id="verdict"></div>
+
+<div class="swatch-strip">
+  <div class="swatches" id="swatchesA" role="group" aria-label="Choose fighter one's color"></div>
+  <div class="swatches" id="swatchesB" role="group" aria-label="Choose fighter two's color"></div>
+</div>
+
+<div class="controls">
+  <button class="ctl" id="undoBtn" disabled>Undo</button>
+  <button class="ctl next-btn" id="nextBtn">Next round</button>
+  <button class="ctl" id="newBtn">New fight</button>
+</div>
+
+<div class="log">
+  <div class="log-head">
+    <h2>Record</h2>
+    <button id="clearBtn">Clear</button>
+  </div>
+  <ol id="logList"></ol>
+  <div class="log-empty" id="logEmpty">No blows struck yet.</div>
+</div>
+
+<script>
+(function () {
+  // Wound rules: [immediate damage, bleed per round]
+  const WOUNDS = {
+    head:  { label: "Head",  dmg: 3, bleed: 2 },
+    chest: { label: "Chest", dmg: 2, bleed: 1 },
+    limb:  { label: "Limb",  dmg: 1, bleed: 0 }
+  };
+
+  // Eight fighter colors: [name, deep panel color, bright accent]
+  const COLORS = [
+    ["Crimson", "#8e2b33", "#e0555b"],
+    ["Cobalt",  "#24425e", "#5a9bd9"],
+    ["Forest",  "#2b5232", "#5cc06a"],
+    ["Amber",   "#7a5a1a", "#e0b34e"],
+    ["Violet",  "#4a2b5e", "#a06ad9"],
+    ["Teal",    "#1d4a4a", "#4ac0bd"],
+    ["Ember",   "#6e3a1d", "#e07f45"],
+    ["Slate",   "#3a3f4a", "#9aa4b5"]
+  ];
+
+  const state = {
+    hpStart: 20,
+    fight: 1,
+    round: 1,
+    over: false,
+    a: { hp: 20, color: 0, head: 0, chest: 0, limb: 0 },
+    b: { hp: 20, color: 1, head: 0, chest: 0, limb: 0 },
+    undo: [],   // snapshots taken before each action
+    log: []     // { type: "hit"|"bleed"|"round"|"milestone", ... }
+  };
+
+  const $ = (id) => document.getElementById(id);
+  const els = {
+    hpA: $("hpA"), hpB: $("hpB"),
+    barA: $("barA"), barB: $("barB"),
+    woundsA: $("woundsA"), woundsB: $("woundsB"),
+    nameA: $("nameA"), nameB: $("nameB"),
+    panelA: $("panelA"), panelB: $("panelB"),
+    fightNum: $("fightNum"), hpStart: $("hpStart"),
+    roundBar: $("roundBar"), verdict: $("verdict"),
+    undoBtn: $("undoBtn"), nextBtn: $("nextBtn"),
+    logList: $("logList"), logEmpty: $("logEmpty")
+  };
+
+  const panel = (side) => side === "a" ? els.panelA : els.panelB;
+  const nameOf = (side) =>
+    (side === "a" ? els.nameA : els.nameB).value.trim() ||
+    (side === "a" ? "Fighter one" : "Fighter two");
+  const brightOf = (side) => COLORS[state[side].color][2];
+  const bleedOf = (f) => f.head * WOUNDS.head.bleed + f.chest * WOUNDS.chest.bleed;
+
+  /* ---------- Undo snapshots ---------- */
+  function snapshot() {
+    state.undo.push({
+      aHp: state.a.hp, bHp: state.b.hp,
+      aH: state.a.head, aC: state.a.chest, aL: state.a.limb,
+      bH: state.b.head, bC: state.b.chest, bL: state.b.limb,
+      round: state.round, over: state.over,
+      logLen: state.log.length
+    });
+    if (state.undo.length > 100) state.undo.shift();
+  }
+
+  els.undoBtn.addEventListener("click", () => {
+    const s = state.undo.pop();
+    if (!s) return;
+    state.a.hp = s.aHp; state.b.hp = s.bHp;
+    state.a.head = s.aH; state.a.chest = s.aC; state.a.limb = s.aL;
+    state.b.head = s.bH; state.b.chest = s.bC; state.b.limb = s.bL;
+    state.round = s.round;
+    state.over = s.over;
+    state.log.length = s.logLen;
+    els.verdict.classList.remove("show");
+    renderLog();
+    render();
+  });
+
+  /* ---------- Colors ---------- */
+  function applyColor(side) {
+    const [, deep, bright] = COLORS[state[side].color];
+    const p = panel(side);
+    p.style.setProperty("--deep", deep);
+    p.style.setProperty("--bright", bright);
+    document.querySelectorAll("#swatches" + side.toUpperCase() + " .swatch")
+      .forEach((s, i) => s.classList.toggle("active", i === state[side].color));
+    save();
+  }
+
+  function buildSwatches(side) {
+    const wrap = $("swatches" + side.toUpperCase());
+    COLORS.forEach(([label, deep], i) => {
+      const b = document.createElement("button");
+      b.className = "swatch";
+      b.style.background = deep;
+      b.setAttribute("aria-label", label);
+      b.title = label;
+      b.addEventListener("click", () => {
+        state[side].color = i;
+        applyColor(side);
+      });
+      wrap.appendChild(b);
+    });
+  }
+  buildSwatches("a"); buildSwatches("b");
+
+  /* ---------- Render ---------- */
+  function woundText(f) {
+    const parts = [];
+    if (f.head)  parts.push(f.head + " Head");
+    if (f.chest) parts.push(f.chest + " Chest");
+    if (f.limb)  parts.push(f.limb + " Limb");
+    if (!parts.length) return "Unwounded";
+    const bleed = bleedOf(f);
+    return parts.join(" \u00b7 ") +
+      (bleed ? ' \u00b7 <span class="bleeding">Bleed \u2212' + bleed + "/rd</span>" : "");
+  }
+
+  function render() {
+    els.hpA.textContent = state.a.hp;
+    els.hpB.textContent = state.b.hp;
+    const fracA = state.a.hp / state.hpStart;
+    const fracB = state.b.hp / state.hpStart;
+    els.barA.style.width = (fracA * 100) + "%";
+    els.barB.style.width = (fracB * 100) + "%";
+    // Green at full health, through amber, to red near death
+    els.barA.style.backgroundColor = "hsl(" + Math.round(fracA * 115) + ", 70%, 45%)";
+    els.barB.style.backgroundColor = "hsl(" + Math.round(fracB * 115) + ", 70%, 45%)";
+    els.woundsA.innerHTML = woundText(state.a);
+    els.woundsB.innerHTML = woundText(state.b);
+    els.fightNum.textContent = state.fight;
+    els.panelA.classList.toggle("down", state.a.hp <= 0 || state.over);
+    els.panelB.classList.toggle("down", state.b.hp <= 0 || state.over);
+    els.undoBtn.disabled = state.undo.length === 0;
+    els.nextBtn.disabled = state.over;
+
+    // Single large round indicator
+    els.roundBar.innerHTML = "";
+    const chip = document.createElement("div");
+    chip.className = "round";
+    chip.textContent = "Round " + state.round;
+    els.roundBar.appendChild(chip);
+
+    save();
+  }
+
+  function flash(side) {
+    const p = panel(side);
+    p.classList.remove("flash");
+    void p.offsetWidth;
+    p.classList.add("flash");
+  }
+
+  /* ---------- Record ---------- */
+  function pushLog(entry) {
+    state.log.push(entry);
+    renderLog();
+  }
+
+  function renderLog() {
+    els.logList.innerHTML = "";
+    els.logEmpty.style.display = state.log.length ? "none" : "block";
+
+    [...state.log].reverse().forEach((e) => {
+      const li = document.createElement("li");
+      if (e.type === "milestone") {
+        li.className = "milestone";
+        li.textContent = e.text;
+      } else if (e.type === "round") {
+        li.className = "roundmark";
+        li.textContent = "\u2014 Round " + e.round + " \u2014";
+      } else {
+        const who = document.createElement("span");
+        who.className = "who";
+        who.style.color = e.color;
+        who.textContent = e.name;
+        const rest = document.createElement("span");
+        if (e.type === "bleed") {
+          rest.className = "bleed-txt";
+          rest.textContent = " bleeds \u2212" + e.dmg + " from wounds ";
+        } else {
+          rest.textContent = " struck on the " + e.loc + " \u2212" + e.dmg + " ";
+        }
+        const dim = document.createElement("span");
+        dim.className = "dim";
+        dim.textContent = "(" + e.left + " left)";
+        li.append(who, rest, dim);
+      }
+      els.logList.appendChild(li);
+    });
+    save();
+  }
+
+  /* ---------- Hits ---------- */
+  document.querySelectorAll(".hit").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      if (state.over) return;
+      const side = btn.dataset.side;
+      const loc = btn.dataset.loc;
+      const rule = WOUNDS[loc];
+      const f = state[side];
+      if (f.hp <= 0) return;
+
+      snapshot();
+      f.hp = Math.max(0, f.hp - rule.dmg);
+      f[loc] += 1;
+      flash(side);
+
+      pushLog({
+        type: "hit",
+        name: nameOf(side),
+        color: brightOf(side),
+        loc: loc,
+        dmg: rule.dmg,
+        left: f.hp
+      });
+
+      checkForEnd();
+      render();
+    });
+  });
+
+  /* ---------- Next round: advance and apply bleed ---------- */
+  els.nextBtn.addEventListener("click", () => {
+    if (state.over) return;
+    snapshot();
+    state.round += 1;
+    pushLog({ type: "round", round: state.round });
+
+    ["a", "b"].forEach((side) => {
+      const f = state[side];
+      const bleed = bleedOf(f);
+      if (bleed > 0 && f.hp > 0) {
+        f.hp = Math.max(0, f.hp - bleed);
+        flash(side);
+        pushLog({
+          type: "bleed",
+          name: nameOf(side),
+          color: brightOf(side),
+          dmg: bleed,
+          left: f.hp
+        });
+      }
+    });
+
+    checkForEnd();
+    render();
+  });
+
+  /* ---------- Fight end ---------- */
+  function checkForEnd() {
+    const aDown = state.a.hp <= 0;
+    const bDown = state.b.hp <= 0;
+    if (!aDown && !bDown) return;
+
+    state.over = true;
+    const label = "Fight " + state.fight + " \u00b7 Round " + state.round;
+    let text;
+    if (aDown && bDown) {
+      text = label + " \u2014 Both fighters fall. Draw.";
+      els.verdict.textContent = "Both fighters fall \u2014 Draw";
+    } else {
+      const w = nameOf(aDown ? "b" : "a");
+      const l = nameOf(aDown ? "a" : "b");
+      text = label + " \u2014 " + w + " defeats " + l;
+      els.verdict.textContent = "Victory \u2014 " + w;
+    }
+    els.verdict.classList.add("show");
+    pushLog({ type: "milestone", text });
+  }
+
+  /* ---------- New fight ---------- */
+  let newArmTimer = null;
+  const newBtn = $("newBtn");
+  newBtn.addEventListener("click", () => {
+    const touched = state.a.hp < state.hpStart || state.b.hp < state.hpStart || state.round > 1;
+
+    // Mid-fight: require a second tap to confirm instead of a popup
+    // (popups are blocked in some sandboxed previews)
+    if (!state.over && touched && !newArmTimer) {
+      newBtn.textContent = "Tap again to confirm";
+      newArmTimer = setTimeout(() => {
+        newArmTimer = null;
+        newBtn.textContent = "New fight";
+      }, 2500);
+      return;
+    }
+    if (newArmTimer) { clearTimeout(newArmTimer); newArmTimer = null; }
+    newBtn.textContent = "New fight";
+
+    if (state.over) state.fight += 1;
+    state.hpStart = clampHp(els.hpStart.value);
+    els.hpStart.value = state.hpStart;
+    ["a", "b"].forEach((side) => {
+      const f = state[side];
+      f.hp = state.hpStart;
+      f.head = 0; f.chest = 0; f.limb = 0;
+    });
+    state.round = 1;
+    state.over = false;
+    state.undo = [];
+    els.verdict.classList.remove("show");
+    render();
+  });
+
+  function clampHp(v) {
+    const n = Math.round(Number(v));
+    return isNaN(n) ? 20 : Math.min(99, Math.max(1, n));
+  }
+  els.hpStart.addEventListener("change", () => {
+    els.hpStart.value = clampHp(els.hpStart.value);
+  });
+
+  /* ---------- Clear record ---------- */
+  let clearArmTimer = null;
+  const clearBtn = $("clearBtn");
+  clearBtn.addEventListener("click", () => {
+    if (!state.log.length) return;
+    if (!clearArmTimer) {
+      clearBtn.textContent = "Sure?";
+      clearArmTimer = setTimeout(() => {
+        clearArmTimer = null;
+        clearBtn.textContent = "Clear";
+      }, 2500);
+      return;
+    }
+    clearTimeout(clearArmTimer); clearArmTimer = null;
+    clearBtn.textContent = "Clear";
+    state.log = [];
+    renderLog();
+  });
+
+  /* ---------- Persistence (survives closing the app) ---------- */
+  const SAVE_KEY = "duel-scorekeeper-v1";
+
+  function save() {
+    try {
+      localStorage.setItem(SAVE_KEY, JSON.stringify({
+        hpStart: state.hpStart,
+        fight: state.fight,
+        round: state.round,
+        over: state.over,
+        a: state.a,
+        b: state.b,
+        log: state.log,
+        nameA: els.nameA.value,
+        nameB: els.nameB.value
+      }));
+    } catch (e) { /* storage unavailable (e.g. preview sandbox) — run in memory */ }
+  }
+
+  function load() {
+    try {
+      const raw = localStorage.getItem(SAVE_KEY);
+      if (!raw) return;
+      const s = JSON.parse(raw);
+      state.hpStart = s.hpStart ?? 20;
+      state.fight = s.fight ?? 1;
+      state.round = s.round ?? 1;
+      state.over = s.over ?? false;
+      Object.assign(state.a, s.a || {});
+      Object.assign(state.b, s.b || {});
+      state.log = Array.isArray(s.log) ? s.log : [];
+      els.nameA.value = s.nameA || "";
+      els.nameB.value = s.nameB || "";
+      els.hpStart.value = state.hpStart;
+    } catch (e) { /* corrupt or unavailable — start fresh */ }
+  }
+
+  els.nameA.addEventListener("input", save);
+  els.nameB.addEventListener("input", save);
+
+  /* ---------- Init ---------- */
+  load();
+  applyColor("a");
+  applyColor("b");
+  render();
+  renderLog();
+})();
+</script>
+<script>
+  // Offline support: register the service worker if this is running from a server
+  if ("serviceWorker" in navigator && location.protocol.startsWith("http")) {
+    navigator.serviceWorker.register("sw.js").catch(() => {});
+  }
+</script>
+</body>
+</html>
