@@ -17,7 +17,7 @@
     --steel: #14161a;
     --steel-panel: #1c1f25;
     --parchment: #f7f3ea;
-    --parchment-dim: #c6beac;
+    --parchment-dim: #eae4d5;
     --brass: #c9a648;
     --blood: #c0392b;
     --hairline: rgba(237, 230, 214, 0.14);
@@ -50,7 +50,7 @@
   .app-title {
     font-family: 'Cinzel', serif;
     font-weight: 700;
-    font-size: 18px;
+    font-size: 20px;
     letter-spacing: 0.22em;
     color: var(--brass);
     text-transform: uppercase;
@@ -59,7 +59,7 @@
     display: flex;
     align-items: center;
     gap: 14px;
-    font-size: 18px;
+    font-size: 20px;
     font-weight: 600;
     letter-spacing: 0.12em;
     text-transform: uppercase;
@@ -73,7 +73,7 @@
     border-radius: 5px;
     color: var(--parchment);
     font-family: inherit;
-    font-size: 18px;
+    font-size: 20px;
     font-weight: 600;
     text-align: center;
     padding: 3px 2px;
@@ -91,7 +91,7 @@
   }
   .round {
     font-family: 'Cinzel', serif;
-    font-size: clamp(25px, 6.5vw, 35px);
+    font-size: clamp(28px, 7vw, 38px);
     font-weight: 700;
     letter-spacing: 0.18em;
     text-transform: uppercase;
@@ -113,7 +113,7 @@
     left: 50%;
     top: clamp(120px, 34vw, 210px);
     transform: translate(-50%, -50%);
-    width: clamp(84px, 24vw, 130px);
+    width: clamp(104px, 30vw, 165px);
     z-index: 5;
     pointer-events: none;   /* never blocks taps on the panels beneath */
   }
@@ -158,7 +158,7 @@
     border-bottom: 1px dashed rgba(247, 243, 234, 0.35);
     color: var(--parchment);
     font-family: inherit;
-    font-size: clamp(22px, 6vw, 31px);
+    font-size: clamp(24px, 6.5vw, 33px);
     font-weight: 600;
     text-align: center;
     width: 92%;
@@ -180,7 +180,7 @@
     font-variant-numeric: tabular-nums;
   }
   .hp-label {
-    font-size: 14px;
+    font-size: 16px;
     letter-spacing: 0.24em;
     text-transform: uppercase;
     color: var(--parchment-dim);
@@ -203,7 +203,7 @@
   }
 
   .wounds {
-    font-size: 16px;
+    font-size: 17.5px;
     letter-spacing: 0.05em;
     text-transform: uppercase;
     color: var(--parchment-dim);
@@ -217,13 +217,13 @@
   .wounds .bleeding { color: #f08a7e; font-weight: 700; }
 
   /* Hit buttons */
-  .hits { display: flex; flex-direction: column; gap: 10px; width: 94%; max-width: 260px; margin-top: 2px; }
+  .hits { display: flex; flex-direction: column; gap: 10px; width: 94%; max-width: 280px; margin-top: 2px; }
   .hit {
     display: flex;
-    justify-content: space-between;
-    align-items: center;
+    align-items: baseline;
+    gap: 9px;
     font-family: inherit;
-    font-size: 22px;
+    font-size: 23px;
     font-weight: 700;
     letter-spacing: 0.06em;
     text-transform: uppercase;
@@ -236,14 +236,14 @@
   }
   .hit:active { background: rgba(0,0,0,0.55); }
   .hit:focus-visible { outline: 2px solid var(--brass); outline-offset: 2px; }
-  .hit .dmg { color: var(--bright); font-weight: 700; font-size: 23px; }
+  .hit .dmg { color: var(--bright); font-weight: 700; font-size: 25px; }
   .hit .bleed-tag {
-    display: block;
-    font-size: 13.5px;
-    letter-spacing: 0.1em;
+    margin-left: auto;
+    font-size: 14.5px;
+    letter-spacing: 0.04em;
     color: var(--parchment-dim);
     font-weight: 500;
-    margin-top: 2px;
+    white-space: nowrap;
   }
   .fighter.down .hit { pointer-events: none; opacity: 0.5; }
 
@@ -253,7 +253,7 @@
     text-align: center;
     padding: 10px 14px;
     font-family: 'Cinzel', serif;
-    font-size: clamp(18px, 5vw, 24px);
+    font-size: clamp(20px, 5.5vw, 26px);
     font-weight: 700;
     letter-spacing: 0.12em;
     color: var(--brass);
@@ -293,7 +293,7 @@
   }
   button.ctl {
     font-family: inherit;
-    font-size: 18px;
+    font-size: 20px;
     font-weight: 700;
     letter-spacing: 0.06em;
     text-transform: uppercase;
@@ -316,77 +316,39 @@
   }
   .next-btn:active { filter: brightness(0.9); }
 
-  /* ---------- Record ---------- */
-  .log {
-    background: var(--steel-panel);
-    border-top: 1px solid var(--hairline);
-    max-height: 24vh;
-    overflow-y: auto;
+  /* ---------- Per-fighter hit log ---------- */
+  .hit-log {
+    list-style: none;
+    width: 94%;
+    max-width: 280px;
+    margin-top: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
   }
-  .log-head {
+  .hit-log li {
     display: flex;
     justify-content: space-between;
-    align-items: center;
-    padding: 8px 16px 4px;
-    position: sticky;
-    top: 0;
-    background: var(--steel-panel);
-  }
-  .log-head h2 {
-    font-size: 15px;
-    font-weight: 700;
-    letter-spacing: 0.24em;
-    text-transform: uppercase;
-    color: var(--parchment-dim);
-  }
-  .log-head button {
-    background: none;
-    border: none;
-    color: var(--parchment-dim);
-    font-family: inherit;
-    font-size: 15px;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    cursor: pointer;
-    padding: 4px 6px;
-  }
-  .log-head button:hover, .log-head button:focus-visible { color: var(--brass); outline: none; }
-
-  .log ol { list-style: none; padding: 2px 16px 12px; }
-  .log li {
-    padding: 5px 0;
-    border-bottom: 1px dotted rgba(237,230,214,0.08);
-    font-size: 19px;
-    line-height: 1.35;
-  }
-  .log .who { font-weight: 700; }
-  .log .dim { color: var(--parchment-dim); }
-  .log .bleed-txt { color: #e2766a; }
-  .log li.milestone {
-    font-family: 'Cinzel', serif;
+    align-items: baseline;
+    gap: 8px;
     font-size: 17px;
-    letter-spacing: 0.08em;
-    color: var(--brass);
-  }
-  .log li.roundmark {
-    font-size: 15px;
-    letter-spacing: 0.2em;
+    font-weight: 600;
+    letter-spacing: 0.05em;
     text-transform: uppercase;
-    color: var(--parchment-dim);
-    text-align: center;
+    color: var(--parchment);
+    border-bottom: 1px dotted rgba(247, 243, 234, 0.16);
+    padding: 4px 2px;
   }
-  .log-empty {
-    padding: 4px 16px 14px;
+  .hit-log .bleed-txt { color: #f08a7e; }
+  .hit-log .rnd {
     color: var(--parchment-dim);
-    font-size: 18px;
-    letter-spacing: 0.04em;
+    opacity: 0.5;
+    font-size: 13.5px;
+    letter-spacing: 0.14em;
+    font-weight: 500;
   }
 
-  @media (min-width: 700px) {
-    .hits { flex-direction: row; }
-    .hit { flex: 1; flex-direction: column; gap: 2px; text-align: center; }
-    .log { max-height: 20vh; }
-  }
+
 </style>
 </head>
 <body>
@@ -413,18 +375,19 @@
     <div class="wounds" id="woundsA">Unwounded</div>
     <div class="hits">
       <button class="hit" data-side="a" data-loc="head">
-        <span>Head<span class="bleed-tag">bleeds −2/round</span></span>
-        <span class="dmg">−3</span>
+        <span>Head</span><span class="dmg">−3</span>
+        <span class="bleed-tag">Bleed −2/rd</span>
       </button>
       <button class="hit" data-side="a" data-loc="chest">
-        <span>Chest<span class="bleed-tag">bleeds −1/round</span></span>
-        <span class="dmg">−2</span>
+        <span>Chest</span><span class="dmg">−2</span>
+        <span class="bleed-tag">Bleed −1/rd</span>
       </button>
       <button class="hit" data-side="a" data-loc="limb">
-        <span>Limb<span class="bleed-tag">no bleed</span></span>
-        <span class="dmg">−1</span>
+        <span>Limb</span><span class="dmg">−1</span>
+        <span class="bleed-tag">No bleed</span>
       </button>
     </div>
+    <ol class="hit-log" id="hitLogA"></ol>
   </section>
 
   <section class="fighter" id="panelB" aria-label="Fighter two">
@@ -435,18 +398,19 @@
     <div class="wounds" id="woundsB">Unwounded</div>
     <div class="hits">
       <button class="hit" data-side="b" data-loc="head">
-        <span>Head<span class="bleed-tag">bleeds −2/round</span></span>
-        <span class="dmg">−3</span>
+        <span>Head</span><span class="dmg">−3</span>
+        <span class="bleed-tag">Bleed −2/rd</span>
       </button>
       <button class="hit" data-side="b" data-loc="chest">
-        <span>Chest<span class="bleed-tag">bleeds −1/round</span></span>
-        <span class="dmg">−2</span>
+        <span>Chest</span><span class="dmg">−2</span>
+        <span class="bleed-tag">Bleed −1/rd</span>
       </button>
       <button class="hit" data-side="b" data-loc="limb">
-        <span>Limb<span class="bleed-tag">no bleed</span></span>
-        <span class="dmg">−1</span>
+        <span>Limb</span><span class="dmg">−1</span>
+        <span class="bleed-tag">No bleed</span>
       </button>
     </div>
+    <ol class="hit-log" id="hitLogB"></ol>
   </section>
 </main>
 
@@ -461,15 +425,6 @@
   <button class="ctl" id="undoBtn" disabled>Undo</button>
   <button class="ctl next-btn" id="nextBtn">Next round</button>
   <button class="ctl" id="newBtn">New fight</button>
-</div>
-
-<div class="log">
-  <div class="log-head">
-    <h2>Record</h2>
-    <button id="clearBtn">Clear</button>
-  </div>
-  <ol id="logList"></ol>
-  <div class="log-empty" id="logEmpty">No blows struck yet.</div>
 </div>
 
 <script>
@@ -501,7 +456,7 @@
     a: { hp: 20, color: 0, head: 0, chest: 0, limb: 0 },
     b: { hp: 20, color: 1, head: 0, chest: 0, limb: 0 },
     undo: [],   // snapshots taken before each action
-    log: []     // { type: "hit"|"bleed"|"round"|"milestone", ... }
+    log: []     // current fight's blows: { type: "hit"|"bleed", side, dmg, round }
   };
 
   const $ = (id) => document.getElementById(id);
@@ -514,7 +469,7 @@
     fightNum: $("fightNum"), hpStart: $("hpStart"),
     roundBar: $("roundBar"), verdict: $("verdict"),
     undoBtn: $("undoBtn"), nextBtn: $("nextBtn"),
-    logList: $("logList"), logEmpty: $("logEmpty")
+    hitLogA: $("hitLogA"), hitLogB: $("hitLogB")
   };
 
   const panel = (side) => side === "a" ? els.panelA : els.panelB;
@@ -632,35 +587,24 @@
   }
 
   function renderLog() {
-    els.logList.innerHTML = "";
-    els.logEmpty.style.display = state.log.length ? "none" : "block";
-
-    [...state.log].reverse().forEach((e) => {
-      const li = document.createElement("li");
-      if (e.type === "milestone") {
-        li.className = "milestone";
-        li.textContent = e.text;
-      } else if (e.type === "round") {
-        li.className = "roundmark";
-        li.textContent = "\u2014 Round " + e.round + " \u2014";
-      } else {
-        const who = document.createElement("span");
-        who.className = "who";
-        who.style.color = e.color;
-        who.textContent = e.name;
-        const rest = document.createElement("span");
+    ["a", "b"].forEach((side) => {
+      const list = side === "a" ? els.hitLogA : els.hitLogB;
+      list.innerHTML = "";
+      [...state.log].filter((e) => e.side === side).reverse().forEach((e) => {
+        const li = document.createElement("li");
+        const what = document.createElement("span");
         if (e.type === "bleed") {
-          rest.className = "bleed-txt";
-          rest.textContent = " bleeds \u2212" + e.dmg + " from wounds ";
+          what.className = "bleed-txt";
+          what.textContent = "Bleed \u2212" + e.dmg;
         } else {
-          rest.textContent = " struck on the " + e.loc + " \u2212" + e.dmg + " ";
+          what.textContent = WOUNDS[e.loc].label + " \u2212" + e.dmg;
         }
-        const dim = document.createElement("span");
-        dim.className = "dim";
-        dim.textContent = "(" + e.left + " left)";
-        li.append(who, rest, dim);
-      }
-      els.logList.appendChild(li);
+        const rnd = document.createElement("span");
+        rnd.className = "rnd";
+        rnd.textContent = "R" + e.round;
+        li.append(what, rnd);
+        list.appendChild(li);
+      });
     });
     save();
   }
@@ -682,11 +626,10 @@
 
       pushLog({
         type: "hit",
-        name: nameOf(side),
-        color: brightOf(side),
+        side: side,
         loc: loc,
         dmg: rule.dmg,
-        left: f.hp
+        round: state.round
       });
 
       checkForEnd();
@@ -699,7 +642,6 @@
     if (state.over) return;
     snapshot();
     state.round += 1;
-    pushLog({ type: "round", round: state.round });
 
     ["a", "b"].forEach((side) => {
       const f = state[side];
@@ -709,10 +651,9 @@
         flash(side);
         pushLog({
           type: "bleed",
-          name: nameOf(side),
-          color: brightOf(side),
+          side: side,
           dmg: bleed,
-          left: f.hp
+          round: state.round
         });
       }
     });
@@ -728,19 +669,12 @@
     if (!aDown && !bDown) return;
 
     state.over = true;
-    const label = "Fight " + state.fight + " \u00b7 Round " + state.round;
-    let text;
     if (aDown && bDown) {
-      text = label + " \u2014 Both fighters fall. Draw.";
       els.verdict.textContent = "Both fighters fall \u2014 Draw";
     } else {
-      const w = nameOf(aDown ? "b" : "a");
-      const l = nameOf(aDown ? "a" : "b");
-      text = label + " \u2014 " + w + " defeats " + l;
-      els.verdict.textContent = "Victory \u2014 " + w;
+      els.verdict.textContent = "Victory \u2014 " + nameOf(aDown ? "b" : "a");
     }
     els.verdict.classList.add("show");
-    pushLog({ type: "milestone", text });
   }
 
   /* ---------- New fight ---------- */
@@ -773,7 +707,9 @@
     state.round = 1;
     state.over = false;
     state.undo = [];
+    state.log = [];
     els.verdict.classList.remove("show");
+    renderLog();
     render();
   });
 
@@ -783,25 +719,6 @@
   }
   els.hpStart.addEventListener("change", () => {
     els.hpStart.value = clampHp(els.hpStart.value);
-  });
-
-  /* ---------- Clear record ---------- */
-  let clearArmTimer = null;
-  const clearBtn = $("clearBtn");
-  clearBtn.addEventListener("click", () => {
-    if (!state.log.length) return;
-    if (!clearArmTimer) {
-      clearBtn.textContent = "Sure?";
-      clearArmTimer = setTimeout(() => {
-        clearArmTimer = null;
-        clearBtn.textContent = "Clear";
-      }, 2500);
-      return;
-    }
-    clearTimeout(clearArmTimer); clearArmTimer = null;
-    clearBtn.textContent = "Clear";
-    state.log = [];
-    renderLog();
   });
 
   /* ---------- Persistence (survives closing the app) ---------- */
@@ -834,7 +751,7 @@
       state.over = s.over ?? false;
       Object.assign(state.a, s.a || {});
       Object.assign(state.b, s.b || {});
-      state.log = Array.isArray(s.log) ? s.log : [];
+      state.log = (Array.isArray(s.log) ? s.log : []).filter((e) => e.side);
       els.nameA.value = s.nameA || "";
       els.nameB.value = s.nameB || "";
       els.hpStart.value = state.hpStart;
