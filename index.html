@@ -221,10 +221,13 @@
   .hit {
     display: flex;
     align-items: baseline;
+    flex-wrap: wrap;          /* bleed tag drops to a 2nd line if it can't fit */
+    row-gap: 3px;
+    overflow: hidden;         /* hard guarantee: nothing escapes the box */
     gap: clamp(5px, 1.6vw, 9px);
     min-width: 0;
     font-family: inherit;
-    font-size: clamp(15px, 4.5vw, 23px);
+    font-size: clamp(14px, 4.2vw, 23px);
     font-weight: 700;
     letter-spacing: 0.03em;
     text-transform: uppercase;
@@ -232,15 +235,16 @@
     background: rgba(0,0,0,0.35);
     border: 1px solid rgba(247, 243, 234, 0.22);
     border-radius: 8px;
-    padding: 14px clamp(8px, 2.6vw, 15px);
+    padding: 12px clamp(8px, 2.6vw, 15px);
     cursor: pointer;
   }
   .hit:active { background: rgba(0,0,0,0.55); }
   .hit:focus-visible { outline: 2px solid var(--brass); outline-offset: 2px; }
-  .hit .dmg { color: var(--bright); font-weight: 700; font-size: clamp(16px, 4.9vw, 25px); }
+  .hit .dmg { color: var(--bright); font-weight: 700; font-size: clamp(15px, 4.6vw, 25px); }
   .hit .bleed-tag {
     margin-left: auto;
-    font-size: clamp(11.5px, 3.3vw, 14.5px);
+    flex-shrink: 0;
+    font-size: clamp(11px, 3.1vw, 14.5px);
     letter-spacing: 0.02em;
     color: var(--parchment-dim);
     font-weight: 500;
