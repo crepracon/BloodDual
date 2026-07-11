@@ -1,5 +1,5 @@
 // Blood Dual — offline support
-const CACHE = "blooddual-v7";
+const CACHE = "blooddual-v8";
 const ASSETS = [
   "./",
   "./index.html",
