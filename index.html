@@ -137,6 +137,7 @@
     background: linear-gradient(180deg, var(--deep), color-mix(in srgb, var(--deep) 50%, black));
   }
   .fighter.down { filter: grayscale(0.7) brightness(0.7); }
+  .hp.zero { color: #e0555b; }
 
   .fighter::after {   /* hit flash */
     content: "";
@@ -744,8 +745,10 @@
     els.woundsA.innerHTML = woundText(state.a);
     els.woundsB.innerHTML = woundText(state.b);
     els.fightNum.textContent = state.fight;
-    els.panelA.classList.toggle("down", state.a.hp <= 0 || state.over);
-    els.panelB.classList.toggle("down", state.b.hp <= 0 || state.over);
+    els.panelA.classList.toggle("down", state.over);
+    els.panelB.classList.toggle("down", state.over);
+    els.hpA.classList.toggle("zero", state.a.hp <= 0);
+    els.hpB.classList.toggle("zero", state.b.hp <= 0);
     els.undoBtn.disabled = state.undo.length === 0;
     els.nextBtn.disabled = state.over;
     if (state.returnPending) newBtn.textContent = "Back to tournament";
@@ -811,10 +814,9 @@
       const loc = btn.dataset.loc;
       const rule = WOUNDS[loc];
       const f = state[side];
-      if (f.hp <= 0) return;
 
       snapshot();
-      f.hp = Math.max(0, f.hp - rule.dmg);
+      f.hp = Math.max(0, f.hp - rule.dmg);   // score caps at 0
       f[loc] += 1;
       flash(side);
 
@@ -826,14 +828,25 @@
         round: state.round
       });
 
-      checkForEnd();
+      // The fight does NOT end here even at 0 HP — exchanges are
+      // simultaneous, so the opponent's hits this round still count.
+      // The fight is settled when Next round is pressed.
       render();
     });
   });
 
-  /* ---------- Next round: advance and apply bleed ---------- */
+  /* ---------- Next round: settle downed fighters, else advance and bleed ---------- */
   els.nextBtn.addEventListener("click", () => {
     if (state.over) return;
+
+    // Someone at 0? The round is over and so is the fight —
+    // both fighters' final health (capped at 0) stands as recorded.
+    if (state.a.hp <= 0 || state.b.hp <= 0) {
+      snapshot();
+      finishFight();
+      return;
+    }
+
     snapshot();
     state.round += 1;
 
@@ -851,25 +864,29 @@
         });
       }
     });
-
-    checkForEnd();
+    // Bleed can drop a fighter to 0, but the new round still plays out —
+    // the fight settles at the next "Next round" press.
     render();
   });
 
   /* ---------- Fight end ---------- */
-  function checkForEnd() {
+  function finishFight() {
     const aDown = state.a.hp <= 0;
     const bDown = state.b.hp <= 0;
-    if (!aDown && !bDown) return;
 
     state.over = true;
     if (aDown && bDown) {
       els.verdict.textContent = "Both fighters fall \u2014 Draw";
-    } else {
+    } else if (aDown || bDown) {
       els.verdict.textContent = "Victory \u2014 " + nameOf(aDown ? "b" : "a");
+    } else if (state.a.hp !== state.b.hp) {
+      els.verdict.textContent = "Victory \u2014 " + nameOf(state.a.hp > state.b.hp ? "a" : "b");
+    } else {
+      els.verdict.textContent = "Draw \u2014 " + state.a.hp + "\u2013" + state.b.hp;
     }
     els.verdict.classList.add("show");
     if (state.tournBout) recordTournBout();
+    render();
   }
 
   /* ---------- New fight ---------- */
@@ -1173,7 +1190,7 @@
         }
       }
     } else {
-      // free bouts: pick any two
+      // free bouts: pick any two (a fighter can never face themselves)
       const wrap = document.createElement("div");
       wrap.className = "t-selects";
       const mkSel = () => {
@@ -1191,9 +1208,27 @@
       vs.className = "t-vs"; vs.textContent = "VS";
       const go = document.createElement("button");
       go.className = "t-fight"; go.textContent = "Fight";
+
+      // Keep the two selects mutually exclusive
+      function syncSelects(changed) {
+        const other = changed === selA ? selB : selA;
+        // If they collide, move the other select to the next available player
+        if (other.value === changed.value) {
+          const free = [...other.options].find((o) => o.value !== changed.value);
+          if (free) other.value = free.value;
+        }
+        // Disable each select's option matching the other's pick
+        [...selA.options].forEach((o) => { o.disabled = o.value === selB.value; });
+        [...selB.options].forEach((o) => { o.disabled = o.value === selA.value; });
+        go.disabled = selA.value === selB.value;
+      }
+      selA.addEventListener("change", () => syncSelects(selA));
+      selB.addEventListener("change", () => syncSelects(selB));
+      syncSelects(selA);
+
       go.addEventListener("click", () => {
         const a = Number(selA.value), b = Number(selB.value);
-        if (a === b) return;
+        if (a === b) return;   // belt and braces
         startTournBout(a, b);
       });
       wrap.append(selA, vs, selB, go);
