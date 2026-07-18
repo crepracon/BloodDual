@@ -1,5 +1,5 @@
 // Blood Dual — offline support
-const CACHE = "blooddual-v13";
+const CACHE = "blooddual-v14";
 const ASSETS = [
   "./",
   "./index.html",
@@ -9,7 +9,17 @@ const ASSETS = [
 ];
 
 self.addEventListener("install", (e) => {
-  e.waitUntil(caches.open(CACHE).then((c) => c.addAll(ASSETS)));
+  // cache: "reload" forces a real network fetch for each core asset,
+  // bypassing the browser's HTTP cache. Without this, a version bump
+  // could still populate the new cache with a stale index.html that
+  // was sitting in HTTP cache from a recent page load.
+  e.waitUntil(
+    caches.open(CACHE).then((c) =>
+      Promise.all(ASSETS.map((url) =>
+        fetch(url, { cache: "reload" }).then((res) => c.put(url, res))
+      ))
+    )
+  );
   self.skipWaiting();
 });
 
