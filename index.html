@@ -354,7 +354,78 @@
     font-weight: 500;
   }
 
-
+  /* ---------- Fight history drawer ---------- */
+  .history-drawer {
+    border-top: 1px solid var(--hairline);
+    background: var(--steel-panel);
+  }
+  .history-toggle {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    font-family: 'Cinzel', serif;
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--parchment-dim);
+    background: none;
+    border: none;
+    padding: 12px 10px;
+    cursor: pointer;
+  }
+  .history-toggle:active { color: var(--brass); }
+  .history-toggle:focus-visible { outline: 2px solid var(--brass); outline-offset: -2px; }
+  .history-toggle .chev { transition: transform 160ms ease; font-size: 13px; }
+  .history-toggle[aria-expanded="true"] .chev { transform: rotate(180deg); }
+  .history-panel {
+    max-height: 42vh;
+    overflow-y: auto;
+    padding: 0 14px 12px;
+  }
+  .history-empty {
+    text-align: center;
+    color: var(--parchment-dim);
+    opacity: 0.7;
+    font-size: 15px;
+    padding: 8px 0 14px;
+  }
+  .history-list { list-style: none; display: flex; flex-direction: column; gap: 8px; }
+  .history-entry {
+    background: rgba(0,0,0,0.28);
+    border: 1px solid var(--hairline);
+    border-radius: 8px;
+    padding: 9px 12px;
+  }
+  .history-entry .h-verdict {
+    font-family: 'Cinzel', serif;
+    font-size: 14.5px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    color: var(--brass);
+  }
+  .history-entry .h-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-top: 3px;
+    font-size: 15.5px;
+    color: var(--parchment);
+  }
+  .history-entry .h-score {
+    font-variant-numeric: tabular-nums;
+    color: var(--parchment-dim);
+  }
+  .history-entry .h-sub {
+    margin-top: 2px;
+    font-size: 12.5px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--parchment-dim);
+    opacity: 0.6;
+  }
 
   /* ---------- Mode tabs ---------- */
   .mode-tabs {
@@ -575,6 +646,16 @@
   <button class="ctl" id="newBtn">New fight</button>
 </div>
 
+<div class="history-drawer duel-ui">
+  <button class="history-toggle" id="historyToggle" aria-expanded="false">
+    <span>Fight History</span>
+    <span class="chev" id="historyChev">▾</span>
+  </button>
+  <div class="history-panel" id="historyPanel" hidden>
+    <ol class="history-list" id="historyList"></ol>
+  </div>
+</div>
+
 <div id="tournView" class="tourn" hidden>
   <section class="t-card">
     <h2>Players</h2>
@@ -628,6 +709,8 @@
     ["Slate",   "#3a3f4a", "#9aa4b5"]
   ];
 
+  const HISTORY_CAP = 20;   // fight-history drawer keeps only the most recent N fights
+
   const state = {
     hpStart: 20,
     fight: 1,
@@ -637,6 +720,7 @@
     b: { hp: 20, color: 1, head: 0, chest: 0, limb: 0 },
     undo: [],   // snapshots taken before each action
     log: [],    // current fight's blows: { type: "hit"|"bleed", side, dmg, round }
+    fightHistory: [],  // completed fights, newest first, capped at HISTORY_CAP
     mode: "duel",          // "duel" | "tourn"
     tournBout: null,       // { aId, bId } while a tournament bout is on the board
     returnPending: false,  // bout recorded, offer "Back to tournament"
@@ -654,7 +738,8 @@
     roundBar: $("roundBar"), verdict: $("verdict"),
     undoBtn: $("undoBtn"), nextBtn: $("nextBtn"),
     hitLogA: $("hitLogA"), hitLogB: $("hitLogB"),
-    tournBanner: $("tournBanner"), tournView: $("tournView")
+    tournBanner: $("tournBanner"), tournView: $("tournView"),
+    historyToggle: $("historyToggle"), historyPanel: $("historyPanel"), historyList: $("historyList")
   };
   const newBtn = $("newBtn");
   let newArmTimer = null;
@@ -815,6 +900,11 @@
       const rule = WOUNDS[loc];
       const f = state[side];
 
+      // A fighter already at 0 HP can't be hit further — no damage,
+      // no stat count, no log entry. Prevents phantom entries from
+      // taps landing on a downed fighter during a chaotic exchange.
+      if (f.hp <= 0) return;
+
       snapshot();
       f.hp = Math.max(0, f.hp - rule.dmg);   // score caps at 0
       f[loc] += 1;
@@ -885,9 +975,54 @@
       els.verdict.textContent = "Draw \u2014 " + state.a.hp + "\u2013" + state.b.hp;
     }
     els.verdict.classList.add("show");
+    recordHistory(els.verdict.textContent);
     if (state.tournBout) recordTournBout();
     render();
   }
+
+  /* ---------- Fight history ---------- */
+  function recordHistory(verdictText) {
+    state.fightHistory.unshift({
+      verdict: verdictText,
+      nameA: nameOf("a"), nameB: nameOf("b"),
+      hpA: state.a.hp, hpB: state.b.hp,
+      hpStart: state.hpStart, rounds: state.round,
+      tournament: !!state.tournBout,
+      ts: Date.now()
+    });
+    if (state.fightHistory.length > HISTORY_CAP) state.fightHistory.length = HISTORY_CAP;
+    renderHistory();
+  }
+
+  function renderHistory() {
+    const list = els.historyList;
+    list.innerHTML = "";
+    if (!state.fightHistory.length) {
+      const empty = document.createElement("div");
+      empty.className = "history-empty";
+      empty.textContent = "No fights recorded yet.";
+      list.appendChild(empty);
+      return;
+    }
+    state.fightHistory.forEach((h) => {
+      const li = document.createElement("li");
+      li.className = "history-entry";
+      const rounds = h.rounds + (h.rounds === 1 ? " round" : " rounds");
+      const tag = h.tournament ? " \u00b7 Tournament" : "";
+      li.innerHTML =
+        "<div class='h-verdict'>" + h.verdict + "</div>" +
+        "<div class='h-meta'><span>" + h.nameA + " vs " + h.nameB + "</span>" +
+        "<span class='h-score'>" + h.hpA + "\u2013" + h.hpB + "</span></div>" +
+        "<div class='h-sub'>" + rounds + tag + "</div>";
+      list.appendChild(li);
+    });
+  }
+
+  els.historyToggle.addEventListener("click", () => {
+    const open = els.historyPanel.hidden;
+    els.historyPanel.hidden = !open;
+    els.historyToggle.setAttribute("aria-expanded", String(open));
+  });
 
   /* ---------- New fight ---------- */
   newBtn.addEventListener("click", () => {
@@ -914,6 +1049,7 @@
       else if (state.b.hp > state.a.hp) els.verdict.textContent = "Victory \u2014 " + nameOf("b");
       else els.verdict.textContent = "Draw \u2014 " + state.a.hp + "\u2013" + state.b.hp;
       els.verdict.classList.add("show");
+      recordHistory(els.verdict.textContent);
       recordTournBout();
       return;
     }
@@ -1262,7 +1398,8 @@
         mode: state.mode,
         tournBout: state.tournBout,
         returnPending: state.returnPending,
-        tourn: state.tourn
+        tourn: state.tourn,
+        fightHistory: state.fightHistory
       }));
     } catch (e) { /* storage unavailable (e.g. preview sandbox) — run in memory */ }
   }
@@ -1285,6 +1422,7 @@
       state.mode = s.mode === "tourn" ? "tourn" : "duel";
       state.tournBout = s.tournBout || null;
       state.returnPending = !!s.returnPending;
+      state.fightHistory = (Array.isArray(s.fightHistory) ? s.fightHistory : []).slice(0, HISTORY_CAP);
       if (s.tourn && Array.isArray(s.tourn.players)) {
         state.tourn = {
           type: s.tourn.type === "free" ? "free" : "rr",
@@ -1305,6 +1443,7 @@
   applyColor("b");
   render();
   renderLog();
+  renderHistory();
   setMode(state.mode);
 })();
 </script>
