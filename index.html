@@ -156,26 +156,26 @@
   .double-btn {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 12px;
     font-family: inherit;
-    font-size: 12.5px;
+    font-size: 25px;
     font-weight: 700;
     letter-spacing: 0.12em;
     text-transform: uppercase;
     color: var(--parchment-dim);
     background: rgba(0,0,0,0.3);
     border: 1px solid rgba(247, 243, 234, 0.22);
-    border-radius: 20px;
-    padding: 6px 12px;
+    border-radius: 32px;
+    padding: 12px 24px;
     cursor: pointer;
     margin-top: 2px;
   }
   .double-btn:active { background: rgba(0,0,0,0.5); }
   .double-btn:focus-visible { outline: 2px solid var(--brass); outline-offset: 2px; }
   .double-btn:disabled { opacity: 0.35; pointer-events: none; }
-  .double-dots { display: inline-flex; gap: 4px; }
+  .double-dots { display: inline-flex; gap: 8px; }
   .double-dots .dot {
-    width: 7px; height: 7px;
+    width: 14px; height: 14px;
     border-radius: 50%;
     background: rgba(247, 243, 234, 0.25);
     display: inline-block;
@@ -1017,10 +1017,10 @@
       if (state.over) return;
       state.doubleCount += 1;
       if (state.doubleCount >= 3) {
-        // Third double this round — roll straight to the next round.
-        // advanceRound() resets doubleCount back to 0 (or settles the
-        // fight if someone's already down).
-        advanceRound();
+        // Third double — the fight ends here, whatever the current HP
+        // stands at (victory/draw exactly as finishFight() decides).
+        snapshot();
+        finishFight();
       } else {
         render();
       }
