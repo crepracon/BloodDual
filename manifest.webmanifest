@@ -1,6 +1,6 @@
 {
-  "name": "Blood Dual — Duel Scorekeeper",
-  "short_name": "Blood Dual",
+  "name": "Duello di Sangue — Duel Scorekeeper",
+  "short_name": "Duello di Sangue",
   "description": "Health-based duel scorekeeping for sword fights: wounds, bleed, rounds, and a full fight record.",
   "start_url": "./",
   "scope": "./",

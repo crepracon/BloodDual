@@ -6,10 +6,10 @@
 <meta name="theme-color" content="#14161a">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Blood Dual">
+<meta name="apple-mobile-web-app-title" content="Duello di Sangue">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icon-192.png">
-<title>Blood Dual — Duel Scorekeeper</title>
+<title>Duello di Sangue — Duel Scorekeeper</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Barlow+Condensed:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
@@ -50,8 +50,8 @@
   .app-title {
     font-family: 'Cinzel', serif;
     font-weight: 700;
-    font-size: 20px;
-    letter-spacing: 0.22em;
+    font-size: clamp(14px, 4vw, 20px);
+    letter-spacing: 0.12em;
     color: var(--brass);
     text-transform: uppercase;
   }
@@ -732,7 +732,7 @@
 <body>
 
 <header>
-  <div class="app-title">Blood Dual</div>
+  <div class="app-title">Duello di Sangue</div>
   <div class="header-right">
     <label class="hp-setting" for="hpStart">Start HP
       <input type="number" id="hpStart" value="20" min="1" max="99" inputmode="numeric">
