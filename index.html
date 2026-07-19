@@ -567,8 +567,54 @@
   .t-table tr.t-playerrow { cursor: pointer; }
   .t-table td.t-stats {
     font-size: 14.5px; color: var(--parchment-dim);
-    letter-spacing: 0.03em; padding-top: 2px;
+    letter-spacing: 0.03em; padding: 10px 6px 14px;
   }
+  .t-stat-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 8px;
+  }
+  .t-stat-col {
+    background: rgba(0,0,0,0.24);
+    border: 1px solid var(--hairline);
+    border-radius: 8px;
+    padding: 8px 10px;
+  }
+  .t-stat-h {
+    font-family: 'Cinzel', serif;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--brass);
+    margin-bottom: 4px;
+  }
+  .t-stat-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 15px;
+    padding: 1.5px 0;
+    color: var(--parchment);
+  }
+  .t-stat-row b { font-variant-numeric: tabular-nums; font-weight: 700; }
+  .t-stat-record {
+    font-size: 14px;
+    color: var(--parchment-dim);
+    margin-bottom: 6px;
+  }
+  .t-badges { display: flex; flex-wrap: wrap; gap: 6px; }
+  .t-badge {
+    display: inline-block;
+    font-size: 12.5px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    color: #1a1508;
+    background: var(--brass);
+    border-radius: 12px;
+    padding: 4px 10px;
+  }
+  .t-badge.dk { background: transparent; border: 1px solid var(--parchment-dim); color: var(--parchment-dim); }
 
   .t-pair {
     display: flex; align-items: center; gap: 10px;
@@ -1079,7 +1125,7 @@
     }
     els.verdict.classList.add("show");
     recordHistory(els.verdict.textContent);
-    if (state.tournBout) recordTournBout();
+    if (state.tournBout) recordTournBout(opts);
     render();
   }
 
@@ -1292,7 +1338,7 @@
     setMode("duel");
   }
 
-  function recordTournBout() {
+  function recordTournBout(opts) {
     const tb = state.tournBout;
     if (!tb) return;
     const hits = state.log.filter((e) => e.type === "hit").map((e) => ({
@@ -1307,7 +1353,8 @@
     state.tourn.bouts.push({
       aId: tb.aId, bId: tb.bId,
       aHp: state.a.hp, bHp: state.b.hp,
-      hits, bleeds
+      hits, bleeds,
+      doubleKillEnd: !!(opts && opts.doubleKillEnd)
     });
     state.tournBout = null;
     state.returnPending = true;
@@ -1318,11 +1365,48 @@
   function tStats(pid) {
     const taken = { head: 0, chest: 0, limb: 0 };
     const dealt = { head: 0, chest: 0, limb: 0 };
-    state.tourn.bouts.forEach((b) => (b.hits || []).forEach((h) => {
-      if (h.victim === pid) taken[h.loc] += 1;
-      if (h.attacker === pid) dealt[h.loc] += 1;
-    }));
-    return { taken, dealt };
+    let wins = 0, losses = 0, draws = 0, doubleKills = 0, bouts = 0;
+    const dealtPerBout = { head: [], chest: [], limb: [] };  // one bool per bout this player fought
+
+    state.tourn.bouts.forEach((b) => {
+      const isA = b.aId === pid, isB = b.bId === pid;
+      if (!isA && !isB) return;
+      bouts += 1;
+
+      (b.hits || []).forEach((h) => {
+        if (h.victim === pid) taken[h.loc] += 1;
+        if (h.attacker === pid) dealt[h.loc] += 1;
+      });
+
+      const myHp = isA ? b.aHp : b.bHp;
+      const oppHp = isA ? b.bHp : b.aHp;
+      if (myHp > oppHp) wins += 1;
+      else if (myHp < oppHp) losses += 1;
+      else draws += 1;
+
+      if (b.doubleKillEnd) doubleKills += 1;
+
+      ["head", "chest", "limb"].forEach((loc) => {
+        dealtPerBout[loc].push((b.hits || []).some((h) => h.attacker === pid && h.loc === loc));
+      });
+    });
+
+    const totalTaken = taken.head + taken.chest + taken.limb;
+    const totalDealt = dealt.head + dealt.chest + dealt.limb;
+
+    const badges = [];
+    if (bouts > 0) {
+      const LOC_LABEL = { head: "Head", chest: "Chest", limb: "Limb" };
+      ["head", "chest", "limb"].forEach((loc) => {
+        if (taken[loc] === 0) badges.push("Never hit in the " + LOC_LABEL[loc]);
+        if (dealtPerBout[loc].length && dealtPerBout[loc].every(Boolean)) {
+          badges.push(LOC_LABEL[loc] + " hit in every bout");
+        }
+      });
+      if (totalTaken === 0) badges.push("Untouched");
+    }
+
+    return { taken, dealt, totalTaken, totalDealt, bouts, wins, losses, draws, doubleKills, badges };
   }
 
   function renderTourn() {
@@ -1385,10 +1469,43 @@
           const td = document.createElement("td");
           td.className = "t-stats";
           td.colSpan = 5;
-          td.textContent =
-            "Taken: " + st.taken.head + " head \u00b7 " + st.taken.chest + " chest \u00b7 " +
-            st.taken.limb + " limb \u2003 Dealt: " + st.dealt.head + " head \u00b7 " +
-            st.dealt.chest + " chest \u00b7 " + st.dealt.limb + " limb";
+
+          const grid = document.createElement("div");
+          grid.className = "t-stat-grid";
+          const mkCol = (label, obj, total) => {
+            const col = document.createElement("div");
+            col.className = "t-stat-col";
+            col.innerHTML =
+              "<div class='t-stat-h'>" + label + "</div>" +
+              "<div class='t-stat-row'><span>Head</span><b>" + obj.head + "</b></div>" +
+              "<div class='t-stat-row'><span>Chest</span><b>" + obj.chest + "</b></div>" +
+              "<div class='t-stat-row'><span>Limb</span><b>" + obj.limb + "</b></div>" +
+              "<div class='t-stat-row'><span>Total</span><b>" + total + "</b></div>";
+            return col;
+          };
+          grid.appendChild(mkCol("Dealt", st.dealt, st.totalDealt));
+          grid.appendChild(mkCol("Taken", st.taken, st.totalTaken));
+          td.appendChild(grid);
+
+          const record = document.createElement("div");
+          record.className = "t-stat-record";
+          record.textContent = st.bouts + " bout" + (st.bouts === 1 ? "" : "s") +
+            " \u00b7 " + st.wins + "W " + st.losses + "L " + st.draws + "D" +
+            (st.doubleKills ? " \u00b7 " + st.doubleKills + " double kill" + (st.doubleKills === 1 ? "" : "s") : "");
+          td.appendChild(record);
+
+          if (st.badges.length) {
+            const badgeWrap = document.createElement("div");
+            badgeWrap.className = "t-badges";
+            st.badges.forEach((b) => {
+              const chip = document.createElement("span");
+              chip.className = "t-badge";
+              chip.textContent = b;
+              badgeWrap.appendChild(chip);
+            });
+            td.appendChild(badgeWrap);
+          }
+
           str.appendChild(td);
           table.appendChild(str);
         }
