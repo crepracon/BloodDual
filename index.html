@@ -616,6 +616,33 @@
   }
   .t-badge.dk { background: transparent; border: 1px solid var(--parchment-dim); color: var(--parchment-dim); }
 
+  .t-radar-wrap { display: flex; flex-direction: column; align-items: center; margin-bottom: 10px; }
+  .t-radar { width: 160px; height: 148px; }
+  .t-radar-ring { fill: none; stroke: rgba(247, 243, 234, 0.14); stroke-width: 1; }
+  .t-radar-axis { stroke: rgba(247, 243, 234, 0.14); stroke-width: 1; }
+  .t-radar-dealt { fill: rgba(201, 166, 72, 0.32); stroke: var(--brass); stroke-width: 1.6; }
+  .t-radar-taken { fill: rgba(240, 138, 126, 0.24); stroke: #f08a7e; stroke-width: 1.6; }
+  .t-radar-label {
+    font-family: inherit;
+    font-size: 9.5px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    fill: var(--parchment-dim);
+    dominant-baseline: middle;
+  }
+  .t-radar-legend {
+    display: flex; gap: 16px; margin-top: 2px;
+    font-size: 12.5px; color: var(--parchment-dim);
+  }
+  .t-radar-legend span { display: inline-flex; align-items: center; }
+  .t-radar-dot {
+    display: inline-block; width: 9px; height: 9px;
+    border-radius: 50%; margin-right: 5px;
+  }
+  .t-radar-dot.dealt { background: var(--brass); }
+  .t-radar-dot.taken { background: #f08a7e; }
+
   .t-pair {
     display: flex; align-items: center; gap: 10px;
     padding: 9px 2px;
@@ -1411,6 +1438,41 @@
     return { taken, dealt, totalTaken, totalDealt, bouts, wins, losses, draws, doubleKills, badges };
   }
 
+  // Hand-drawn 3-axis radar (Head / Chest / Limb), Dealt vs Taken overlaid
+  // on a shared scale so the two shapes are directly comparable.
+  function radarSvg(dealt, taken) {
+    const locs = ["head", "chest", "limb"];
+    const labels = { head: "Head", chest: "Chest", limb: "Limb" };
+    const angles = [-90, 30, 150];   // degrees: top, bottom-right, bottom-left
+    const cx = 70, cy = 64, R = 46;
+    const maxVal = Math.max(1, dealt.head, dealt.chest, dealt.limb, taken.head, taken.chest, taken.limb);
+
+    const toXY = (r, i) => {
+      const rad = (angles[i] * Math.PI) / 180;
+      return [cx + r * Math.cos(rad), cy + r * Math.sin(rad)];
+    };
+    const seriesPts = (obj) => locs.map((loc, i) => toXY((obj[loc] / maxVal) * R, i).join(",")).join(" ");
+    const ringPts = (frac) => locs.map((_, i) => toXY(R * frac, i).join(",")).join(" ");
+
+    let svg = "<svg viewBox='0 0 140 130' class='t-radar' aria-hidden='true'>";
+    [0.33, 0.66, 1].forEach((f) => {
+      svg += "<polygon points='" + ringPts(f) + "' class='t-radar-ring' />";
+    });
+    locs.forEach((_, i) => {
+      const [ox, oy] = toXY(R, i);
+      svg += "<line x1='" + cx + "' y1='" + cy + "' x2='" + ox.toFixed(1) + "' y2='" + oy.toFixed(1) + "' class='t-radar-axis' />";
+    });
+    svg += "<polygon points='" + seriesPts(taken) + "' class='t-radar-taken' />";
+    svg += "<polygon points='" + seriesPts(dealt) + "' class='t-radar-dealt' />";
+    locs.forEach((loc, i) => {
+      const [lx, ly] = toXY(R + 15, i);
+      svg += "<text x='" + lx.toFixed(1) + "' y='" + ly.toFixed(1) +
+        "' class='t-radar-label' text-anchor='middle'>" + labels[loc] + "</text>";
+    });
+    svg += "</svg>";
+    return svg;
+  }
+
   function renderTourn() {
     // players
     const chips = $("tChips");
@@ -1471,6 +1533,15 @@
           const td = document.createElement("td");
           td.className = "t-stats";
           td.colSpan = 5;
+
+          const radarWrap = document.createElement("div");
+          radarWrap.className = "t-radar-wrap";
+          radarWrap.innerHTML = radarSvg(st.dealt, st.taken) +
+            "<div class='t-radar-legend'>" +
+            "<span><span class='t-radar-dot dealt'></span>Dealt</span>" +
+            "<span><span class='t-radar-dot taken'></span>Taken</span>" +
+            "</div>";
+          td.appendChild(radarWrap);
 
           const grid = document.createElement("div");
           grid.className = "t-stat-grid";
