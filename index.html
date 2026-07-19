@@ -566,7 +566,7 @@
   .t-table td.num { font-variant-numeric: tabular-nums; font-weight: 700; text-align: right; }
   .t-table tr.t-playerrow { cursor: pointer; }
   .t-table td.t-stats {
-    font-size: 14.5px; color: var(--parchment-dim);
+    font-size: 16px; color: var(--parchment-dim);
     letter-spacing: 0.03em; padding: 10px 6px 14px;
   }
   .t-stat-grid {
@@ -583,7 +583,7 @@
   }
   .t-stat-h {
     font-family: 'Cinzel', serif;
-    font-size: 12px;
+    font-size: 13.5px;
     font-weight: 700;
     letter-spacing: 0.14em;
     text-transform: uppercase;
@@ -593,31 +593,31 @@
   .t-stat-row {
     display: flex;
     justify-content: space-between;
-    font-size: 15px;
-    padding: 1.5px 0;
+    font-size: 17px;
+    padding: 2px 0;
     color: var(--parchment);
   }
   .t-stat-row b { font-variant-numeric: tabular-nums; font-weight: 700; }
   .t-stat-record {
-    font-size: 14px;
+    font-size: 15.5px;
     color: var(--parchment-dim);
     margin-bottom: 6px;
   }
   .t-badges { display: flex; flex-wrap: wrap; gap: 6px; }
   .t-badge {
     display: inline-block;
-    font-size: 12.5px;
+    font-size: 13.5px;
     font-weight: 700;
     letter-spacing: 0.04em;
     color: #1a1508;
     background: var(--brass);
     border-radius: 12px;
-    padding: 4px 10px;
+    padding: 5px 11px;
   }
   .t-badge.dk { background: transparent; border: 1px solid var(--parchment-dim); color: var(--parchment-dim); }
 
-  .t-radar-wrap { display: flex; flex-direction: column; align-items: center; margin-bottom: 10px; }
-  .t-radar { width: 160px; height: 148px; }
+  .t-radar-wrap { display: flex; flex-direction: column; align-items: center; margin-bottom: 6px; }
+  .t-radar { width: 208px; height: 192px; }
   .t-radar-ring { fill: none; stroke: rgba(247, 243, 234, 0.14); stroke-width: 1; }
   .t-radar-axis { stroke: rgba(247, 243, 234, 0.14); stroke-width: 1; }
   .t-radar-dealt { fill: rgba(201, 166, 72, 0.32); stroke: var(--brass); stroke-width: 1.6; }
@@ -632,16 +632,17 @@
     dominant-baseline: middle;
   }
   .t-radar-legend {
-    display: flex; gap: 16px; margin-top: 2px;
-    font-size: 12.5px; color: var(--parchment-dim);
+    display: flex; gap: 18px; margin-top: -20px;
+    font-size: 14px; color: var(--parchment-dim);
   }
   .t-radar-legend span { display: inline-flex; align-items: center; }
   .t-radar-dot {
-    display: inline-block; width: 9px; height: 9px;
+    display: inline-block; width: 10px; height: 10px;
     border-radius: 50%; margin-right: 5px;
   }
   .t-radar-dot.dealt { background: var(--brass); }
   .t-radar-dot.taken { background: #f08a7e; }
+
 
   .t-pair {
     display: flex; align-items: center; gap: 10px;
