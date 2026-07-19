@@ -1249,6 +1249,8 @@
     });
     state.over = false;
     state.undo = [];
+    state.doubleCount = 0;
+    state.doubleKillThisRound = false;
     els.verdict.classList.remove("show");
     render();
   }
