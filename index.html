@@ -643,6 +643,31 @@
   .t-radar-dot.dealt { background: var(--brass); }
   .t-radar-dot.taken { background: #f08a7e; }
 
+  .t-chart-tabs { display: flex; gap: 8px; margin-bottom: 8px; }
+  .t-chart-tab {
+    font-family: inherit;
+    font-size: 12.5px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--parchment-dim);
+    background: rgba(0,0,0,0.24);
+    border: 1px solid var(--hairline);
+    border-radius: 14px;
+    padding: 5px 13px;
+    cursor: pointer;
+  }
+  .t-chart-tab.active { background: var(--brass); border-color: var(--brass); color: #1a1508; }
+
+  .t-timeline-wrap { display: flex; flex-direction: column; align-items: center; margin-bottom: 6px; }
+  .t-timeline { width: 100%; height: 128px; }
+  .t-tl-grid { stroke: rgba(247, 243, 234, 0.12); stroke-width: 1; }
+  .t-tl-axis { font-size: 9px; fill: var(--parchment-dim); }
+  .t-tl-line { fill: none; stroke: var(--brass); stroke-width: 2; stroke-linejoin: round; }
+  .t-tl-dot { fill: var(--brass); }
+  .t-tl-dot-dk { fill: #f08a7e; }
+  .t-tl-divider { stroke: rgba(247, 243, 234, 0.18); stroke-width: 1; stroke-dasharray: 3 3; }
+
 
   .t-pair {
     display: flex; align-items: center; gap: 10px;
@@ -1316,6 +1341,7 @@
   }
   const pairKey = (x, y) => (x < y ? x + ":" + y : y + ":" + x);
   let tOpenStats = null;   // player id with expanded stats row
+  let tChartTab = "radar"; // which chart is showing in the expanded panel: "radar" | "timeline"
 
   $("tAddBtn").addEventListener("click", tAddPlayer);
   $("tPlayerName").addEventListener("keydown", (e) => {
@@ -1383,6 +1409,7 @@
     state.tourn.bouts.push({
       aId: tb.aId, bId: tb.bId,
       aHp: state.a.hp, bHp: state.b.hp,
+      hpStart: state.hpStart,
       hits, bleeds,
       doubleKillEnd: !!(opts && opts.doubleKillEnd)
     });
@@ -1474,6 +1501,80 @@
     return svg;
   }
 
+  // Reconstructs a player's HP round-by-round for every bout they've
+  // fought, in the order fought. Damage is bucketed per round from the
+  // stored hits/bleeds; a final adjustment point snaps to the true
+  // recorded HP (covers the -2 double-kill tax, which isn't logged as
+  // a per-round event).
+  function buildHpTimeline(pid) {
+    return state.tourn.bouts.filter((b) => b.aId === pid || b.bId === pid).map((b) => {
+      const isA = b.aId === pid;
+      const start = b.hpStart || Math.max(b.aHp, b.bHp, 20);
+      const finalHp = isA ? b.aHp : b.bHp;
+      const dmgByRound = {};
+      (b.hits || []).forEach((h) => {
+        if (h.victim === pid) dmgByRound[h.round] = (dmgByRound[h.round] || 0) + h.dmg;
+      });
+      (b.bleeds || []).forEach((h) => {
+        if (h.victim === pid) dmgByRound[h.round] = (dmgByRound[h.round] || 0) + h.dmg;
+      });
+      const roundKeys = Object.keys(dmgByRound).map(Number);
+      const maxRound = roundKeys.length ? Math.max(...roundKeys) : 0;
+
+      let hp = start;
+      const points = [{ round: 0, hp: start }];
+      for (let r = 1; r <= maxRound; r++) {
+        hp = Math.max(0, hp - (dmgByRound[r] || 0));
+        points.push({ round: r, hp });
+      }
+      if (hp !== finalHp) points.push({ round: maxRound + 1, hp: finalHp });
+
+      const oppId = isA ? b.bId : b.aId;
+      return { points, doubleKillEnd: !!b.doubleKillEnd, oppName: tPlayerName(oppId) };
+    });
+  }
+
+  function timelineSvg(segments) {
+    if (!segments.length) return "<div class='t-empty' style='padding:24px 4px;'>No bouts recorded yet.</div>";
+
+    const W = 300, H = 140, padL = 24, padR = 8, padT = 10, padB = 8;
+    const plotW = W - padL - padR, plotH = H - padT - padB;
+    const maxHp = Math.max(20, ...segments.flatMap((s) => s.points.map((p) => p.hp)));
+
+    let totalUnits = 0;
+    const laid = segments.map((s) => {
+      const rounds = s.points[s.points.length - 1].round;
+      const startX = totalUnits;
+      totalUnits += Math.max(rounds, 1) + 1;   // +1 unit gap between bouts
+      return { ...s, startX, rounds };
+    });
+    const xOf = (u) => padL + (u / Math.max(totalUnits - 1, 1)) * plotW;
+    const yOf = (hp) => padT + plotH - (hp / maxHp) * plotH;
+
+    let svg = "<svg viewBox='0 0 " + W + " " + H + "' preserveAspectRatio='none' class='t-timeline'>";
+    [0, 0.5, 1].forEach((f) => {
+      const y = (padT + plotH - f * plotH).toFixed(1);
+      svg += "<line x1='" + padL + "' y1='" + y + "' x2='" + (W - padR) + "' y2='" + y + "' class='t-tl-grid' />";
+    });
+    svg += "<text x='2' y='" + (padT + 4) + "' class='t-tl-axis'>" + maxHp + "</text>";
+    svg += "<text x='2' y='" + (padT + plotH) + "' class='t-tl-axis'>0</text>";
+
+    laid.forEach((s, i) => {
+      const pts = s.points.map((p) => xOf(s.startX + p.round).toFixed(1) + "," + yOf(p.hp).toFixed(1)).join(" ");
+      svg += "<polyline points='" + pts + "' class='t-tl-line' />";
+      const last = s.points[s.points.length - 1];
+      const cx = xOf(s.startX + last.round).toFixed(1), cy = yOf(last.hp).toFixed(1);
+      svg += "<circle cx='" + cx + "' cy='" + cy + "' r='3' class='" +
+        (s.doubleKillEnd ? "t-tl-dot-dk" : "t-tl-dot") + "' />";
+      if (i < laid.length - 1) {
+        const dx = xOf(s.startX + s.rounds + 0.5).toFixed(1);
+        svg += "<line x1='" + dx + "' y1='" + padT + "' x2='" + dx + "' y2='" + (padT + plotH) + "' class='t-tl-divider' />";
+      }
+    });
+    svg += "</svg>";
+    return svg;
+  }
+
   function renderTourn() {
     // players
     const chips = $("tChips");
@@ -1524,7 +1625,9 @@
         tr.innerHTML += "<td class='num'>" + r.score + "</td><td class='num'>" + r.wins +
                         "</td><td class='num'>" + r.bouts + "</td>";
         tr.addEventListener("click", () => {
-          tOpenStats = tOpenStats === r.p.id ? null : r.p.id;
+          const opening = tOpenStats !== r.p.id;
+          tOpenStats = opening ? r.p.id : null;
+          if (opening) tChartTab = "radar";
           renderTourn();
         });
         table.appendChild(tr);
@@ -1535,14 +1638,35 @@
           td.className = "t-stats";
           td.colSpan = 5;
 
-          const radarWrap = document.createElement("div");
-          radarWrap.className = "t-radar-wrap";
-          radarWrap.innerHTML = radarSvg(st.dealt, st.taken) +
-            "<div class='t-radar-legend'>" +
-            "<span><span class='t-radar-dot dealt'></span>Dealt</span>" +
-            "<span><span class='t-radar-dot taken'></span>Taken</span>" +
-            "</div>";
-          td.appendChild(radarWrap);
+          const tabs = document.createElement("div");
+          tabs.className = "t-chart-tabs";
+          [["radar", "Shape"], ["timeline", "Timeline"]].forEach(([key, label]) => {
+            const tb = document.createElement("button");
+            tb.type = "button";
+            tb.className = "t-chart-tab" + (tChartTab === key ? " active" : "");
+            tb.textContent = label;
+            tb.addEventListener("click", () => { tChartTab = key; renderTourn(); });
+            tabs.appendChild(tb);
+          });
+          td.appendChild(tabs);
+
+          const chartWrap = document.createElement("div");
+          if (tChartTab === "timeline") {
+            chartWrap.className = "t-timeline-wrap";
+            chartWrap.innerHTML = timelineSvg(buildHpTimeline(r.p.id)) +
+              "<div class='t-radar-legend'>" +
+              "<span><span class='t-radar-dot dealt'></span>Bout end</span>" +
+              "<span><span class='t-radar-dot taken'></span>Double kill</span>" +
+              "</div>";
+          } else {
+            chartWrap.className = "t-radar-wrap";
+            chartWrap.innerHTML = radarSvg(st.dealt, st.taken) +
+              "<div class='t-radar-legend'>" +
+              "<span><span class='t-radar-dot dealt'></span>Dealt</span>" +
+              "<span><span class='t-radar-dot taken'></span>Taken</span>" +
+              "</div>";
+          }
+          td.appendChild(chartWrap);
 
           const grid = document.createElement("div");
           grid.className = "t-stat-grid";
