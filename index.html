@@ -383,6 +383,7 @@
     padding: 4px 2px;
   }
   .hit-log .bleed-txt { color: #f08a7e; }
+  .hit-log .double-txt { color: #c9a648; }
   .hit-log .rnd {
     color: var(--parchment-dim);
     opacity: 0.5;
@@ -763,7 +764,8 @@
     b: { hp: 20, color: 1, head: 0, chest: 0, limb: 0 },
     undo: [],   // snapshots taken before each action
     log: [],    // current fight's blows: { type: "hit"|"bleed", side, dmg, round }
-    doubleCount: 0,    // shared "double kill" strike count, resets each round (0-3)
+    doubleCount: 0,    // shared "double kill" strike count, cumulative across the whole fight (0-3); 3rd ends the fight
+    doubleKillThisRound: false,  // was Double Kill pressed already this round? blocks bleed + a second press
     fightHistory: [],  // completed fights, newest first, capped at HISTORY_CAP
     mode: "duel",          // "duel" | "tourn"
     tournBout: null,       // { aId, bId } while a tournament bout is on the board
@@ -803,7 +805,8 @@
       aH: state.a.head, aC: state.a.chest, aL: state.a.limb,
       bH: state.b.head, bC: state.b.chest, bL: state.b.limb,
       round: state.round, over: state.over,
-      logLen: state.log.length
+      logLen: state.log.length,
+      doubleCount: state.doubleCount, doubleKillThisRound: state.doubleKillThisRound
     });
     if (state.undo.length > 100) state.undo.shift();
   }
@@ -816,6 +819,8 @@
     state.b.head = s.bH; state.b.chest = s.bC; state.b.limb = s.bL;
     state.round = s.round;
     state.over = s.over;
+    state.doubleCount = s.doubleCount ?? 0;
+    state.doubleKillThisRound = !!s.doubleKillThisRound;
     state.log.length = s.logLen;
     els.verdict.classList.remove("show");
     renderLog();
@@ -887,7 +892,7 @@
       "<span class='dot" + (i < state.doubleCount ? " filled" : "") + "'></span>").join("");
     els.doubleDotsA.innerHTML = dotsHtml;
     els.doubleDotsB.innerHTML = dotsHtml;
-    document.querySelectorAll(".double-btn").forEach((btn) => { btn.disabled = state.over; });
+    document.querySelectorAll(".double-btn").forEach((btn) => { btn.disabled = state.over || state.doubleKillThisRound; });
 
     if (state.returnPending) newBtn.textContent = "Back to tournament";
     else if (state.tournBout) newBtn.textContent = "End bout";
@@ -931,6 +936,9 @@
         if (e.type === "bleed") {
           what.className = "bleed-txt";
           what.textContent = "Bleed \u2212" + e.dmg;
+        } else if (e.type === "doublekill") {
+          what.className = "double-txt";
+          what.textContent = "Double Kill \u2212" + e.dmg;
         } else {
           what.textContent = WOUNDS[e.loc].label + " \u2212" + e.dmg;
         }
@@ -992,12 +1000,17 @@
 
     snapshot();
     state.round += 1;
-    state.doubleCount = 0;
+
+    // If Double Kill was pressed this round, it wasn't a real exchange —
+    // don't let bleed from earlier wounds tick during the transition out
+    // of a chaos round. Wounds/bleed from genuine rounds are untouched.
+    const skipBleed = state.doubleKillThisRound;
+    state.doubleKillThisRound = false;
 
     ["a", "b"].forEach((side) => {
       const f = state[side];
       const bleed = bleedOf(f);
-      if (bleed > 0 && f.hp > 0) {
+      if (!skipBleed && bleed > 0 && f.hp > 0) {
         f.hp = Math.max(0, f.hp - bleed);
         flash(side);
         pushLog({
@@ -1018,13 +1031,15 @@
   /* ---------- Double Kill: shared 3-strike counter for simultaneous hits ---------- */
   document.querySelectorAll(".double-btn").forEach((btn) => {
     btn.addEventListener("click", () => {
-      if (state.over) return;
+      if (state.over || state.doubleKillThisRound) return;
+      snapshot();
       state.doubleCount += 1;
+      state.doubleKillThisRound = true;   // blocks bleed on this round's transition, blocks a 2nd press this round
       if (state.doubleCount >= 3) {
-        // Third double — the fight ends here, whatever the current HP
-        // stands at (victory/draw exactly as finishFight() decides).
-        snapshot();
-        finishFight();
+        // Third double — the fight ends immediately. Whatever HP genuine
+        // rounds already produced carries over as-is; only the -2 tax
+        // (applied inside finishFight) is new damage.
+        finishFight({ doubleKillEnd: true });
       } else {
         render();
       }
@@ -1032,19 +1047,35 @@
   });
 
   /* ---------- Fight end ---------- */
-  function finishFight() {
+  function finishFight(opts) {
+    opts = opts || {};
+
+    if (opts.doubleKillEnd) {
+      // Flat -2 tax to both fighters, on top of whatever genuine rounds
+      // already produced. Doesn't erase real wounds, just makes ending
+      // a fight via 3 double kills always cost something for both sides.
+      ["a", "b"].forEach((side) => {
+        const f = state[side];
+        if (f.hp > 0) {
+          f.hp = Math.max(0, f.hp - 2);
+          pushLog({ type: "doublekill", side: side, dmg: 2, round: state.round });
+        }
+      });
+    }
+
     const aDown = state.a.hp <= 0;
     const bDown = state.b.hp <= 0;
+    const tag = opts.doubleKillEnd ? " \u2014 Double Kill" : "";
 
     state.over = true;
     if (aDown && bDown) {
-      els.verdict.textContent = "Both fighters fall \u2014 Draw";
+      els.verdict.textContent = "Both fighters fall \u2014 Draw" + tag;
     } else if (aDown || bDown) {
-      els.verdict.textContent = "Victory \u2014 " + nameOf(aDown ? "b" : "a");
+      els.verdict.textContent = "Victory \u2014 " + nameOf(aDown ? "b" : "a") + tag;
     } else if (state.a.hp !== state.b.hp) {
-      els.verdict.textContent = "Victory \u2014 " + nameOf(state.a.hp > state.b.hp ? "a" : "b");
+      els.verdict.textContent = "Victory \u2014 " + nameOf(state.a.hp > state.b.hp ? "a" : "b") + tag;
     } else {
-      els.verdict.textContent = "Draw \u2014 " + state.a.hp + "\u2013" + state.b.hp;
+      els.verdict.textContent = "Draw \u2014 " + state.a.hp + "\u2013" + state.b.hp + tag;
     }
     els.verdict.classList.add("show");
     recordHistory(els.verdict.textContent);
@@ -1154,6 +1185,7 @@
     state.undo = [];
     state.log = [];
     state.doubleCount = 0;
+    state.doubleKillThisRound = false;
     els.verdict.classList.remove("show");
     renderLog();
     render();
@@ -1464,6 +1496,7 @@
         round: state.round,
         over: state.over,
         doubleCount: state.doubleCount,
+        doubleKillThisRound: state.doubleKillThisRound,
         a: state.a,
         b: state.b,
         log: state.log,
@@ -1488,6 +1521,7 @@
       state.round = s.round ?? 1;
       state.over = s.over ?? false;
       state.doubleCount = Math.min(3, Math.max(0, s.doubleCount ?? 0));
+      state.doubleKillThisRound = !!s.doubleKillThisRound;
       Object.assign(state.a, s.a || {});
       Object.assign(state.b, s.b || {});
       state.log = (Array.isArray(s.log) ? s.log : []).filter((e) => e.side);
