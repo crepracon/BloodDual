@@ -107,25 +107,37 @@
     position: relative;
   }
 
-  /* Round timer: sits as its own full-width row at the top of main,
-     directly above/between the two Double Kill buttons. */
+  /* Round timer: a small floating badge on the seam between the two
+     panels, at the same height as the Double Kill buttons — so it
+     visually sits "between" them without disturbing the panel layout
+     or pushing the crest down. */
   .duel-timer {
-    grid-column: 1 / -1;
+    position: absolute;
+    left: 50%;
+    top: clamp(32px, 9vw, 44px);
+    transform: translate(-50%, -50%);
+    z-index: 6;
     display: flex;
-    justify-content: center;
+    flex-direction: column;
     align-items: center;
-    min-height: 38px;
-    padding: 6px 12px;
-    border-bottom: 1px solid var(--hairline);
-    background: rgba(0, 0, 0, 0.18);
+    gap: 4px;
+    padding: 6px 10px;
+    border-radius: 10px;
+    background: rgba(10, 9, 6, 0.72);
+    border: 1px solid var(--hairline);
+    pointer-events: none;
   }
+  .duel-timer .timeout-actions,
+  .duel-timer #timerNextBtn,
+  .duel-timer #timerRedoBtn { pointer-events: auto; }
   .timer-display {
     font-family: 'Cinzel', serif;
-    font-size: clamp(20px, 5.5vw, 28px);
+    font-size: clamp(17px, 4.6vw, 22px);
     font-weight: 700;
-    letter-spacing: 0.12em;
+    letter-spacing: 0.1em;
     font-variant-numeric: tabular-nums;
     color: var(--parchment-dim);
+    white-space: nowrap;
   }
   .timer-display.low { color: var(--blood); }
   .timer-display.critical {
@@ -138,22 +150,27 @@
   }
   .timeout-actions {
     display: flex;
+    flex-direction: column;
     align-items: center;
-    gap: 10px;
-    flex-wrap: wrap;
-    justify-content: center;
+    gap: 5px;
   }
   .timeout-label {
     font-family: 'Cinzel', serif;
     font-weight: 700;
-    letter-spacing: 0.16em;
+    letter-spacing: 0.14em;
     text-transform: uppercase;
     color: var(--blood);
-    font-size: 18px;
+    font-size: 13px;
+    white-space: nowrap;
+  }
+  .timeout-btns {
+    display: flex;
+    gap: 6px;
   }
   .timeout-btn {
-    padding: 9px 14px;
-    font-size: 16px;
+    padding: 5px 9px;
+    font-size: 12.5px;
+    white-space: nowrap;
   }
   #timerRedoBtn { border-color: var(--brass); }
   #timerNextBtn {
@@ -185,7 +202,7 @@
     align-items: center;
     justify-content: flex-start;
     gap: 10px;
-    padding: 18px 10px 20px;
+    padding: 18px 10px 28px;
     position: relative;
     overflow: hidden;
     transition: filter 200ms ease;
@@ -470,6 +487,18 @@
     font-size: 12px;
     color: var(--brass);
     opacity: 0.85;
+  }
+
+  .chart-toggle {
+    margin-top: 10px;
+    padding: 8px 16px;
+    font-size: 14px;
+  }
+  .duel-chart {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    margin-top: 8px;
   }
 
   /* ---------- Fight history drawer ---------- */
@@ -871,6 +900,8 @@
     </div>
     <ol class="hit-log" id="hitLogA"></ol>
     <div class="duel-stats" id="statsA"></div>
+    <button class="ctl chart-toggle" id="chartToggleA" type="button" aria-expanded="false">View Chart</button>
+    <div class="duel-chart" id="chartPanelA" hidden></div>
   </section>
 
   <section class="fighter" id="panelB" aria-label="Fighter two">
@@ -898,6 +929,8 @@
     </div>
     <ol class="hit-log" id="hitLogB"></ol>
     <div class="duel-stats" id="statsB"></div>
+    <button class="ctl chart-toggle" id="chartToggleB" type="button" aria-expanded="false">View Chart</button>
+    <div class="duel-chart" id="chartPanelB" hidden></div>
   </section>
 </main>
 
@@ -1285,8 +1318,34 @@
       el.innerHTML =
         '<span class="ds-row"><span class="ds-label">Dealt \u00b7 </span>' + fmtTally(s.dealt) + "</span>" +
         '<span class="ds-row"><span class="ds-label">Taken \u00b7 </span>' + fmtTally(s.taken) + "</span>";
+      const panel = side === "a" ? $("chartPanelA") : $("chartPanelB");
+      if (!panel.hidden) renderDuelChart(side);
     });
   }
+
+  function renderDuelChart(side) {
+    const panel = side === "a" ? $("chartPanelA") : $("chartPanelB");
+    const s = duelStatsFor(side);
+    panel.innerHTML =
+      '<div class="t-radar-wrap">' +
+      radarSvg(s.dealt, s.taken) +
+      '<div class="t-radar-legend">' +
+      '<span><span class="t-radar-dot dealt"></span>Dealt</span>' +
+      '<span><span class="t-radar-dot taken"></span>Taken</span>' +
+      "</div></div>";
+  }
+
+  ["a", "b"].forEach((side) => {
+    const btn = side === "a" ? $("chartToggleA") : $("chartToggleB");
+    const panel = side === "a" ? $("chartPanelA") : $("chartPanelB");
+    btn.addEventListener("click", () => {
+      const opening = panel.hidden;
+      panel.hidden = !opening;
+      btn.setAttribute("aria-expanded", String(opening));
+      btn.textContent = opening ? "Hide Chart" : "View Chart";
+      if (opening) renderDuelChart(side);
+    });
+  });
 
   /* ---------- Hits ---------- */
   document.querySelectorAll(".hit").forEach((btn) => {
