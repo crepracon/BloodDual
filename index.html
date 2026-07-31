@@ -336,25 +336,30 @@
     background: var(--steel-panel);
   }
   .controls.top-controls {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: center;
     border-top: none;
     border-bottom: 1px solid var(--hairline);
   }
-  .controls.top-controls button.ctl {
-    flex: 1 1 90px;
+
+  /* Round timer: its own static-height bar, centered, separate from the
+     button row so button sizing never shifts when the clock updates or
+     Time Out appears. */
+  .duel-timer {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--hairline);
+    background: var(--steel-panel);
   }
   .timer-display {
     font-family: 'Cinzel', serif;
-    font-size: 17px;
+    font-size: clamp(30px, 9vw, 44px);
     font-weight: 700;
-    letter-spacing: 0.08em;
+    letter-spacing: 0.1em;
     font-variant-numeric: tabular-nums;
     color: var(--parchment-dim);
     white-space: nowrap;
-    padding: 0 4px;
   }
   .timer-display.low { color: var(--blood); }
   .timer-display.critical {
@@ -367,25 +372,22 @@
   }
   .timeout-actions {
     display: flex;
+    flex-direction: column;
     align-items: center;
     gap: 8px;
-    flex-wrap: wrap;
-    justify-content: center;
-    flex: 1 1 100%;
-    padding-top: 8px;
   }
   .timeout-label {
     font-family: 'Cinzel', serif;
     font-weight: 700;
-    letter-spacing: 0.14em;
+    letter-spacing: 0.16em;
     text-transform: uppercase;
     color: var(--blood);
-    font-size: 15px;
+    font-size: 20px;
   }
-  .timeout-btns { display: flex; gap: 8px; }
+  .timeout-btns { display: flex; gap: 10px; }
   .timeout-btn {
-    padding: 9px 12px;
-    font-size: 14px;
+    padding: 10px 16px;
+    font-size: 15px;
   }
   #timerRedoBtn { border-color: var(--brass); }
   #timerNextBtn {
@@ -854,10 +856,13 @@
 <nav class="rounds duel-ui" id="roundBar" aria-label="Round tracker"></nav>
 
 <div class="controls duel-ui top-controls" id="topControls">
-  <div class="timer-display" id="timerDisplay">2:00</div>
   <button class="ctl" id="undoBtn" disabled>Undo</button>
   <button class="ctl next-btn" id="nextBtn">Next round</button>
   <button class="ctl" id="newBtn">New fight</button>
+</div>
+
+<div class="duel-timer duel-ui" id="timerBar">
+  <div class="timer-display" id="timerDisplay">2:00</div>
   <div class="timeout-actions" id="timeoutActions" hidden>
     <span class="timeout-label">Time Out</span>
     <div class="timeout-btns">
