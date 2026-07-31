@@ -395,6 +395,13 @@
     border-color: var(--brass);
     color: #1a1508;
   }
+  .start-timer-btn {
+    background: var(--brass);
+    border-color: var(--brass);
+    color: #1a1508;
+    padding: 12px 22px;
+    font-size: 18px;
+  }
   button.ctl {
     font-family: inherit;
     font-size: 20px;
@@ -862,7 +869,8 @@
 </div>
 
 <div class="duel-timer duel-ui" id="timerBar">
-  <div class="timer-display" id="timerDisplay">2:00</div>
+  <button class="ctl start-timer-btn" id="startTimerBtn" type="button">Start Timer</button>
+  <div class="timer-display" id="timerDisplay" hidden>2:00</div>
   <div class="timeout-actions" id="timeoutActions" hidden>
     <span class="timeout-label">Time Out</span>
     <div class="timeout-btns">
@@ -1027,7 +1035,7 @@
   // fight is in progress. roundSnapshot captures the state as of the
   // moment the current round began, so "Redo fight" can revert to it.
   const ROUND_TIMER_SECONDS = 120;
-  const timer = { remaining: ROUND_TIMER_SECONDS, timedOut: false, roundSnapshot: null };
+  const timer = { remaining: ROUND_TIMER_SECONDS, timedOut: false, roundSnapshot: null, started: false };
   let timerInterval = null;
 
   const $ = (id) => document.getElementById(id);
@@ -1045,7 +1053,8 @@
     historyToggle: $("historyToggle"), historyPanel: $("historyPanel"), historyList: $("historyList"),
     doubleDotsA: $("doubleDotsA"), doubleDotsB: $("doubleDotsB"),
     timerDisplay: $("timerDisplay"), timeoutActions: $("timeoutActions"),
-    timerNextBtn: $("timerNextBtn"), timerRedoBtn: $("timerRedoBtn")
+    timerNextBtn: $("timerNextBtn"), timerRedoBtn: $("timerRedoBtn"),
+    startTimerBtn: $("startTimerBtn")
   };
   const newBtn = $("newBtn");
   let newArmTimer = null;
@@ -1110,6 +1119,7 @@
     stopTimer();
     timer.remaining = ROUND_TIMER_SECONDS;
     timer.timedOut = false;
+    timer.started = true;
     renderTimer();
     timerInterval = setInterval(() => {
       timer.remaining -= 1;
@@ -1122,14 +1132,29 @@
     }, 1000);
   }
 
+  // Called when a fresh fight's board is reset. Doesn't start the clock —
+  // that only happens once the judge taps "Start Timer" for round 1.
+  function resetTimerIdle() {
+    stopTimer();
+    timer.remaining = ROUND_TIMER_SECONDS;
+    timer.timedOut = false;
+    timer.started = false;
+    renderTimer();
+  }
+
+  els.startTimerBtn.addEventListener("click", () => {
+    startTimer();
+  });
+
   function renderTimer() {
     const m = Math.floor(timer.remaining / 60);
     const s = timer.remaining % 60;
     els.timerDisplay.textContent = m + ":" + (s < 10 ? "0" : "") + s;
     els.timerDisplay.classList.toggle("low", timer.remaining <= 30 && timer.remaining > 10);
     els.timerDisplay.classList.toggle("critical", timer.remaining <= 10);
-    els.timerDisplay.hidden = timer.timedOut;
-    els.timeoutActions.hidden = !timer.timedOut;
+    els.startTimerBtn.hidden = timer.started;
+    els.timerDisplay.hidden = !timer.started || timer.timedOut;
+    els.timeoutActions.hidden = !timer.started || !timer.timedOut;
     els.timerRedoBtn.disabled = !timer.roundSnapshot;
   }
 
@@ -1614,7 +1639,7 @@
     els.verdict.classList.remove("show");
     renderLog();
     captureRoundStart();
-    startTimer();
+    resetTimerIdle();
     render();
   });
 
@@ -1634,7 +1659,7 @@
     state.doubleKillThisRound = false;
     els.verdict.classList.remove("show");
     captureRoundStart();
-    startTimer();
+    resetTimerIdle();
     render();
   }
 
